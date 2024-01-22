@@ -1,0 +1,836 @@
+<listing-open-modal id="listing-app"></listing-open-modal>
+<skills-modal id="skills-modal-id"></skills-modal>
+
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+    <meta name="csrf-token" content="45kFcgX96wMdqBrExknahEzcSDO8TZDMXlf00rrN">
+    <meta name="current-uid" content="8488671" />
+    <meta name="recaptcha-site-key" content="6LfyrzIaAAAAADxcAWE0Li7ViNp5HdOz8d129ydE" />
+    <meta name="websocket-token"
+        content="eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4NDg4NjcxfQ.GiwEJF4NU8L4AoTIlEIKRmuZHLEHIpwKKKfUzEng9Ao" />
+    <meta name="websocket-url" content="https://www.fl.ru" />
+
+
+    <link rel="icon" href="/favicon.ico" type="image/x-icon">
+    <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon">
+    <link href="https://fonts.googleapis.com/css?family=Montserrat:300,400,500,700&display=swap&subset=cyrillic-ext"
+        rel="stylesheet">
+
+    <title>Дашборд фрилансера</title>
+    <meta name="description" lang="ru" content="Описание" />
+    <script src="https://www.google.com/recaptcha/api.js?onload=vueRecaptchaApiLoaded&hl=ru" async defer></script>
+    <!-- Styles -->
+    <link rel="stylesheet" href="https://cdn.fl.ru/assets/vendor.114926bd473d15924d9c42a8ef9c4fd0.css">
+    <link rel="stylesheet" href="https://cdn.fl.ru/assets/all.dee3c307b451a534eb0dac5e334bdb3f.css">
+</head>
+
+<body class="d-flex flex-column h-100 font-family-montserrat fl-viewport">
+    <div id="svg-sprite"></div>
+    <banner-profile id="app-banner-profile"></banner-profile>
+    <sms-modal id="app-sms-modal-general"></sms-modal>
+    <page-up-button id="page-up-button"></page-up-button>
+
+    <nav class="navbar navbar-expand-lg navbar-light">
+        <div class="container">
+            <div class="d-flex flex-row">
+                <a class="navbar-brand" href="/" title="На главную">
+                    <span class="navbar-logo">
+                        <svg width="37" height="31">
+                            <use xlink:href="#logo"></use>
+                        </svg>
+                    </span>
+                </a>
+                <ul class="navbar-nav flex-row mr-auto">
+                    <li class="nav-item  d-lg-block  d-none">
+                        <a data-id="qa-head-work"
+                            data-ga-event='{"ec":"freelancer","ea":"main_menu_clicked","el":"projects"}'
+                            data-ga-on='click' data-ga-data='projects' href="/projects/" class="nav-link px-0"
+                            title="Список заказов для фрилансеров">Работа</a>
+                    </li>
+                    <li data-id="qa-head-li-drop-menu"
+                        class="d-none  d-lg-flex  align-items-center nav-item nav-item-hover-show dropdown mr-16">
+                        <a class="nav-link dropdown-toggle dropdown-toggle-icon pr-0" href="#" role="button"
+                            data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            <span class="d-none d-md-inline">
+                                <svg width="12" height="9">
+                                    <use xlink:href="#dropdown"></use>
+                                </svg>
+                            </span>
+                        </a>
+                        <div class="dropdown-menu entire-scroll position-absolute dropdown-menu_left shadow"
+                            aria-labelledby="navbarLeftDropdown">
+                            <a href="/projects/category/razrabotka-sajtov/" class="dropdown-item"
+                                title="Разработка сайтов">
+                                Разработка сайтов</a>
+                            <a href="/projects/category/teksty/" class="dropdown-item" title="Тексты">
+                                Тексты</a>
+                            <a href="/projects/category/dizajn/" class="dropdown-item" title="Дизайн">
+                                Дизайн</a>
+                            <a href="/projects/category/programmirovanie/" class="dropdown-item"
+                                title="Программирование">
+                                Программирование</a>
+                            <a href="/projects/category/audio-video/" class="dropdown-item" title="Аудио / Видео">
+                                Аудио / Видео</a>
+                            <a href="/projects/category/reklama-marketing/" class="dropdown-item"
+                                title="Реклама / Маркетинг">
+                                Реклама / Маркетинг</a>
+                            <a href="/projects/category/konsalting/" class="dropdown-item" title="Консалтинг">
+                                Консалтинг</a>
+                            <a href="/projects/category/razrabotka-igr/" class="dropdown-item" title="Разработка игр">
+                                Разработка игр</a>
+                            <a href="/projects/category/animatsiya-multiplikatsiya/" class="dropdown-item"
+                                title="Анимация / Мультипликация">
+                                Анимация / Мультипликация</a>
+                            <a href="/projects/category/perevody/" class="dropdown-item" title="Переводы">
+                                Переводы</a>
+                            <a href="/projects/category/fotografiya/" class="dropdown-item" title="Фотография">
+                                Фотография</a>
+                            <a href="/projects/category/3d-grafika/" class="dropdown-item" title="3D Графика">
+                                3D Графика</a>
+                            <a href="/projects/category/inzhiniring/" class="dropdown-item" title="Инжиниринг">
+                                Инжиниринг</a>
+                            <a href="/projects/category/optimizatsiya-seo/" class="dropdown-item"
+                                title="Оптимизация (SEO)">
+                                Оптимизация (SEO)</a>
+                            <a href="/projects/category/arkhitektura-interer/" class="dropdown-item"
+                                title="Архитектура / Интерьер">
+                                Архитектура / Интерьер</a>
+                            <a href="/projects/category/poligrafiya/" class="dropdown-item" title="Полиграфия">
+                                Полиграфия</a>
+                            <a href="/projects/category/menedzhment/" class="dropdown-item" title="Менеджмент">
+                                Менеджмент</a>
+                            <a href="/projects/category/mobilnye-prilozheniya/" class="dropdown-item"
+                                title="Мобильные приложения">
+                                Мобильные приложения</a>
+                            <a href="/projects/category/teksty/perevodchik/" class="dropdown-item"
+                                title="Переводчик удаленно">
+                                Переводчик удаленно</a>
+                            <a href="/projects/category/teksty/perevodchik-angliyskogo-yazika/" class="dropdown-item"
+                                title="Переводчик с английского языка">
+                                Переводчик с английского языка</a>
+                            <a href="/projects/category/teksty/perevodchik-nemeckogo-yazika/" class="dropdown-item"
+                                title="Переводчик с немецкого языка">
+                                Переводчик с немецкого языка</a>
+                            <a href="/projects/category/reklama-marketing/rabota-marketologom/" class="dropdown-item"
+                                title="Маркетолог удаленно">
+                                Маркетолог удаленно</a>
+                            <a href="/projects/category/dizajn/rabota-v-photoshop/" class="dropdown-item"
+                                title="Фотошоп удаленно">
+                                Фотошоп удаленно</a>
+                        </div>
+                    </li>
+                    <li class="nav-item  d-xl-flex  d-none mr-16">
+                        <a data-id="qa-head-a-freelancers"
+                            data-ga-event='{"ec":"freelancer","ea":"main_menu_clicked","el":"freelancers"}'
+                            data-ga-on='click' data-ga-data='freelancers' href="/freelancers/" class="nav-link px-0"
+                            title="Раздел фрилансеров">Фрилансеры</a>
+                    </li>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                    <li class="nav-item dropdown d-flex">
+                        <a class="nav-link dropdown-toggle pr-0" href="#" id="navbarLeftDropdown" role="button"
+                            data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            <span class="d-none  d-lg-inline ">
+                                Еще<span class="dropdown-toggle-icon">
+                                    <svg width="12" height="9">
+                                        <use xlink:href="#dropdown"></use>
+                                    </svg>
+                                </span>
+                            </span>
+                            <span class="d-inline  d-lg-none ">
+                                <svg width="22" height="22">
+                                    <use xlink:href="#menu"></use>
+                                </svg>
+                            </span>
+                        </a>
+                        <div class="dropdown-menu position-absolute dropdown-menu_left shadow"
+                            aria-labelledby="navbarLeftDropdown">
+                            <a data-ga-event='{"ec":"freelancer","ea":"main_menu_clicked","el":"projects"}'
+                                data-ga-on='click' data-ga-data='projects' href="/projects/"
+                                class="dropdown-item  d-lg-none  d-block"
+                                title="Список заказов для фрилансеров">Работа</a>
+
+
+
+
+
+
+                            <a data-ga-event='{"ec":"freelancer","ea":"main_menu_clicked","el":"freelancers"}'
+                                data-ga-on='click' data-ga-data='freelancers' href="/freelancers/"
+                                class="dropdown-item  d-xl-none  d-block">Все фрилансеры</a>
+                            <a data-ga-event='{"ec":"freelancer","ea":"main_menu_clicked","el":"konkurs"}'
+                                data-ga-on='click' data-ga-data='konkurs' href="/konkurs/"
+                                class="dropdown-item  d-block" title="Список конкурсов для фрилансеров">Конкурсы</a>
+                            <a data-ga-event='{"ec":"freelancer","ea":"main_menu_clicked","el":"vacancy"}'
+                                data-ga-on='click' data-ga-data='vacancy' rel="nofollow" href="/projects/?kind=4"
+                                class="dropdown-item  d-block" title="Список вакансий для фрилансеров">Вакансии</a>
+                            <a data-ga-event='{"ec":"freelancer","ea":"main_menu_clicked","el":"search"}'
+                                data-ga-on='click' data-ga-data='search' rel="nofollow" href="/search/"
+                                class="dropdown-item d-block" title="Поиск по сайту">Поиск</a>
+                            <a data-ga-event='{"ec":"freelancer","ea":"main_menu_clicked","el":"blog"}'
+                                data-ga-on='click' data-ga-data='blog' href="https://blog.fl.ru/" class="dropdown-item"
+                                title="Блог">Блог</a>
+                            <a data-ga-event='{"ec":"freelancer","ea":"main_menu_clicked","el":"bs"}' data-ga-on='click'
+                                data-ga-data='bs' href="/promo/bezopasnaya-sdelka/" class="dropdown-item"
+                                title="Безопасная сделка">Безопасная сделка</a>
+                            <a data-ga-event='{"ec":"freelancer","ea":"main_menu_clicked","el":"partner"}'
+                                data-ga-on='click' data-ga-data='partner' href="/partner/" class="dropdown-item"
+                                title="Партнерская программа">Партнерская программа</a>
+                            <a data-ga-event='{"ec":"freelancer","ea":"main_menu_clicked","el":"knowledge_base"}'
+                                data-ga-on='click' data-ga-data='knowledge_base'
+                                href="https://feedback.fl.ru/knowledge-bases/2-baza-znanij-flru" class="dropdown-item"
+                                target="_blank" title="База знаний">База знаний</a>
+                            <noindex><a data-ga-event='{"ec":"freelancer","ea":"main_menu_clicked","el":"help"}'
+                                    data-ga-on='click' data-ga-data='help' rel="nofollow" target="_blank"
+                                    href="https://feedback.fl.ru/" class="dropdown-item" data-id="userecho"
+                                    title="Помощь">Помощь</a></noindex>
+                            <a data-ga-event='{"ec":"freelancer","ea":"main_menu_clicked","el":"communities"}'
+                                data-ga-on='click' data-ga-data='communities' href="/communities/beginners/"
+                                class="dropdown-item" title="Сообщество">Сообщество</a>
+                            <a data-ga-event='{"ec":"freelancer","ea":"main_menu_clicked","el":"app_ios"}'
+                                data-ga-on='click' data-ga-data='app_ios' href="https://promo.fl.ru/pwa-prilozhenie-fl"
+                                target="_blank" class="dropdown-item" title="Приложение для iOS">Приложение для iOS</a>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+            <div class="d-flex flex-row align-items-center">
+                <ul class="navbar-nav position-relative flex-row d-none d-xs-block mr-8">
+                    <a data-ga-event='{"ec":"freelancer","ea":"main_menu_clicked","el":"search"}' data-ga-on='click'
+                        data-ga-data='search' href="/search/" title="Поиск по сайту" class="hover-icon-round mr-8">
+                        <svg width="32" height="32">
+                            <use xlink:href="#search-white"></use>
+                        </svg>
+                    </a>
+                    <li class="nav-item navbar-gift d-none justify-content-center">
+                        <a data-id="qa-head-gift"
+                            data-ga-event='{"ec":"freelancer","ea":"main_menu_clicked","el":"gift"}' data-ga-on='click'
+                            data-ga-data='gift' rel="nofollow" href="https://myesl.ru/fl"
+                            class="navbar-gift-icon d-inline-flex flex-row align-items-center justify-content-center">
+                            <svg width="30" height="30">
+                                <use xlink:href="#gift"></use>
+                            </svg>
+                        </a>
+                        <span class="navbar-gift-hover text-7">
+                            Скидки и подарки для пользователей FL.ru от партнеров платформы
+                        </span>
+                    </li>
+                    <div id="navbar-gift-popup-hidden" class="navbar-gift_popup d-none text-7 ">
+                        Вам доступны скидки и подарки от партнеров FL.ru
+                        <button type="button" onclick="removePopupGift()"
+                            class="navbar-gift_btn text-btn-s f-weight-500">Понятно</button>
+                    </div>
+                </ul>
+                <a data-id="qa-head-buy-pro" href="/payed/"
+                    class="d-none d-sm-block ui-button _responsive _success _sm ml-8 mr-8 mr-md-24"
+                    title="Расширить возможности профиля">
+                    Расширить возможности профиля
+                </a>
+                <ul class="navbar-nav flex-row align-items-center">
+                    <li class="nav-item d-none d-lg-block js-menu-messages-clause" title="Мои сообщения и переписка">
+                        <a data-id="qa-head-messages" href="/messages/" class="nav-link">
+                            Чаты
+                            <span class="badge badge-pill badge-warning js-menu-clause-quantity"></span>
+
+                        </a>
+                    </li>
+                    <li class="nav-item hidden d-none d-lg-block js-menu-tasks-clause" title="Список заказов">
+                        <a data-id="qa-head-my-offers" class="nav-link" href="/proj/?p=list">
+                            Мои отклики
+                            <span class="badge badge-pill badge-warning js-menu-clause-quantity"></span>
+                        </a>
+                    </li>
+                    <li data-id="qa-head-notifications" class="nav-item dropdown position-static">
+                        <div class="d-inline-flex flex-row align-items-center">
+                            <div class="mr-24 mr-sm-10">
+                                <notifications id="notifications-header-id"></notifications>
+                            </div>
+                        </div>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <div class="d-inline-flex flex-row align-items-center">
+                            <span data-id="qa-head-pro" class="mr-md-16 d-none d-sm-inline-block ">
+                            </span>
+                            <a class="nav-link fl-user-img dropdown-toggle mw-20 pr-0" href="#"
+                                data-id="qa-head-profile" id="navbarRightDropdown" role="button" data-toggle="dropdown"
+                                aria-haspopup="true" aria-expanded="false" title="Меню профиля"
+                                data-ga-event='{"ec":"header_menu","ea":"quest_view","el":"8488671"}' data-ga-on='click'
+                                data-ga-data='8488671'>
+                                <svg width="20" height="20">
+                                    <use xlink:href="#user"></use>
+                                </svg>
+                                <span
+                                    class="badge badge-pill badge-warning js-menu-clause-quantity js-menu-clause-total d-md-none"></span>
+                            </a>
+                            <div class="dropdown-menu position-absolute dropdown-menu-right shadow"
+                                aria-labelledby="navbarRightDropdown">
+                                <a id="dropdown-item_profile" class="dropdown-item"
+                                    href="https://www.fl.ru/users/aringai09/">
+                                    Профиль
+                                    <span class="float-right text-5 line-height-inherit text-gray-dark">Фрилансер</span>
+                                </a>
+                                <a id="dropdown-item_my-service" href="/users/aringai09/uslugi-freelancera/"
+                                    class="dropdown-item" title="Мои услуги">
+                                    <span>Мои услуги</span>
+                                    <span id="dropdown-item_my-service_new-icon" class="float-right">
+                                        <svg width="41" height="19">
+                                            <use xlink:href="#new-bordered"></use>
+                                        </svg>
+                                    </span>
+                                </a>
+                                <a data-ga-event='{"ec":"freelancer","ea":"main_menu_clicked","el":"gift"}'
+                                    data-ga-on='click' data-ga-data='gift' href="https://myesl.ru/fl"
+                                    class="dropdown-item d-xs-none d-inline-flex align-items-center justify-content-between"
+                                    title="Скидки и подарки">
+                                    Скидки и подарки
+                                    <svg width="16" height="16">
+                                        <use xlink:href="#gift"></use>
+                                    </svg>
+                                </a>
+                                <a class="dropdown-item" href="http://www.fl.ru/dashboard/"
+                                    data-ga-event="{ec: 'freelancer', ea: 'main_menu_clicked_profile',el: 'dashboard'}"
+                                    data-ga-on="click" data-ga-data="dashboard">
+                                    Мой FL
+                                </a>
+                                <a href="/user/onboard/freelancer/reward/?ec=header_menu" class="dropdown-item"
+                                    title="Начинающим фрилансерам"
+                                    data-ga-event='{"ec":"header_menu","ea":"quest_click","el":"8488671, \/user\/onboard\/freelancer\/reward\/"}'
+                                    data-ga-on='click' data-ga-data='8488671, /user/onboard/freelancer/reward/'>
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <span>Начинающим фрилансерам</span>
+                                        <svg width="15" height="14">
+                                            <use xlink:href="#gift"></use>
+                                        </svg>
+                                    </div>
+                                </a>
+
+                                <a href="/messages/" class="dropdown-item js-menu-messages-clause d-block d-lg-none"
+                                    title="Мои сообщения и переписка"
+                                    data-ga-event="{ec: 'freelancer', ea: 'main_menu_clicked_profile',el: 'chat'}"
+                                    data-ga-on="click" data-ga-data="chat">
+                                    Чаты
+                                    <span id="unread-messages"
+                                        class="badge badge-pill badge-warning  js-menu-clause-quantity"></span>
+                                </a>
+
+
+                                <a href="/lenta/" class="dropdown-item" title="Лента новых работ и сообществ"
+                                    data-ga-event="{ec: 'freelancer', ea: 'main_menu_clicked_profile',el: 'lenta'}"
+                                    data-ga-on="click" data-ga-data="lenta">Лента</a>
+
+                                <a href="/payed/" class="dropdown-item" title="Купить аккаунт Pro"
+                                    data-ga-event="{ec: 'freelancer', ea: 'main_menu_clicked_profile',el: 'buy-pro'}"
+                                    data-ga-on="click" data-ga-data="buy-pro">Купить аккаунт Pro</a>
+
+                                <a href="/promotion/" class="dropdown-item" title="Статистика аккаунта"
+                                    data-ga-event="{ec: 'freelancer', ea: 'main_menu_clicked_profile',el: 'promotion'}"
+                                    data-ga-on="click" data-ga-data="promotion">Статистика</a>
+
+                                <a href="/bill/history/?period=0" class="dropdown-item" title="0  ₽"
+                                    data-ga-event="{ec: 'freelancer', ea: 'main_menu_clicked_profile',el: 'bill-history'}"
+                                    data-ga-on="click" data-ga-data="bill-history">
+                                    Счет
+                                    <span class="float-right">
+                                        0
+                                        <span class="fl-rub"><span class="d-none">руб</span></span>
+                                    </span>
+                                </a>
+                                <a href="/partner/referals/" class="dropdown-item" title="Счет партнерской программы"
+                                    data-ga-event="{ec: 'freelancer', ea: 'main_menu_clicked_profile',el: 'partner-referals'}"
+                                    data-ga-on="click" data-ga-data="partner-referals">
+                                    Счет партнера
+                                </a>
+                                <a href="/communities/beginners/" class="dropdown-item" title="Чат в телеграм"
+                                    data-ga-event="{ec: 'freelancer', ea: 'main_menu_clicked_profile',el: 'communities'}"
+                                    data-ga-on="click" data-ga-data="communities">
+                                    <span>Сообщество</span>
+                                    <span class="float-right">
+                                        <svg width="41" height="19">
+                                            <use xlink:href="#new-bordered"></use>
+                                        </svg>
+                                    </span>
+                                </a>
+                                <a href="/users/aringai09/setup/" class="dropdown-item" title="Настройки аккаунта"
+                                    data-ga-event="{ec: 'freelancer', ea: 'main_menu_clicked_profile',el: 'settings'}"
+                                    data-ga-on="click" data-ga-data="settings">Настройки</a>
+                                <a href="/users/aringai09/setup/favourites/" class="dropdown-item" title="Избранные"
+                                    data-ga-event="{ec: 'freelancer', ea: 'main_menu_clicked_profile',el: 'favourites'}"
+                                    data-ga-on="click" data-ga-data="favourites">Избранные</a>
+
+
+
+                                <a href="#" class="dropdown-item js-switch-account"
+                                    title="Перейти в аккаунт работодателя">Войти как заказчик</a>
+                                <a href="/account/logout/" class="dropdown-item" data-action="logout"
+                                    title="Выйти из аккаунта фрилансера"
+                                    data-ga-event="{ec: 'freelancer', ea: 'main_menu_clicked_profile',el: 'logout'}"
+                                    data-ga-on="click" data-ga-data="logout">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <span>Выйти из аккаунта</span>
+                                        <svg width="15" height="14">
+                                            <use xlink:href="#logout"></use>
+                                        </svg>
+                                    </div>
+                                </a>
+                            </div>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <script>
+        const el = document.getElementById('navbar-gift-popup');
+
+        function getCid() {
+            let match = document.cookie.match('(?:^|;)\\s*_ga=([^;]*)');
+            const raw = (match) ? decodeURIComponent(match[1]) : null;
+            if (raw) {
+                match = raw.match(/(\d+\.\d+)$/);
+            }
+
+            return (match) ? match[1] : null;
+        }
+
+        function sendWindowYmEvents(action, eventLabel) {
+            var userId = window.user && window.user.id ? window.user.id : 'user_anon';
+            var prepParams = {};
+
+            var prepLabel = eventLabel ? `${eventLabel}, ${window.location.pathname}` : window.location.pathname;
+            prepParams.eventLabel = prepLabel;
+            prepParams.UserID = userId;
+            prepParams.eventCategory = window?.user?.role || 'anon';
+            prepParams.eventAction = action;
+            prepParams.cId = getCid();
+            window.ym(6051055 || '', 'reachGoal', 'event_ga', prepParams);
+        }
+
+        /* отправка yandex metrika */
+        function yaMetrikaSend(action, eventLabel) {
+            if (window.ym) {
+                sendWindowYmEvents(action, eventLabel);
+            }
+        }
+
+        const myServiceDropItem = document.getElementById('dropdown-item_my-service');
+        const myProfileDropItem = document.getElementById('dropdown-item_profile');
+        /* После 2024 1 июля можно удалить этот код и иконку с id dropdown-item_my-service_new-icon */
+        // Начало скрытия иконки new после 2024.07.01
+        const myServiceDropItemIcon = document.getElementById('dropdown-item_my-service_new-icon');
+        const currentDate = new Date().getTime();
+        const endDateNewServiceItem = new Date('2024-07-01').getTime();
+
+        if (currentDate - endDateNewServiceItem > 0) {
+            myServiceDropItemIcon.classList.add('d-none');
+        }
+        // Конец
+
+        myProfileDropItem.addEventListener('click', function () {
+            yaMetrikaSend('main_menu_clicked_profile', 'profile');
+        });
+
+        myServiceDropItem.addEventListener('click', function () {
+            yaMetrikaSend('main_menu_clicked_profile', 'service');
+        });
+
+
+        const popupGiftShown = localStorage.getItem('popupGiftShown');
+
+        if (!popupGiftShown && el) {
+            el.classList.remove("d-none");
+        }
+
+        function removePopupGift() {
+            localStorage.setItem('popupGiftShown', 'true');
+            el.classList.add('d-none');
+        }
+    </script>
+    <div id="fl-quest-plate-main-block">
+        <quest-plate id="app-quest-plate"></quest-plate>
+    </div>
+
+
+
+    <div id="app-vue"></div>
+
+
+    <ui-snakebar id="ui-snakebar"></ui-snakebar>
+    <messages-open-window id="open-chat"></messages-open-window>
+    <auth-modal id="auth-modal-app"></auth-modal>
+    <any-desk id="any-desk-id"></any-desk>
+
+    <!-- Yandex.Metrika counter -->
+    <script type="text/javascript">
+        (function (m, e, t, r, i, k, a) {
+            m[i] = m[i] || function () { (m[i].a = m[i].a || []).push(arguments) };
+            m[i].l = 1 * new Date(); k = e.createElement(t), a = e.getElementsByTagName(t)[0], k.async = 1, k.src = r, a.parentNode.insertBefore(k, a)
+        })
+            (window, document, "script", "https://mc.yandex.ru/metrika/tag.js", "ym");
+
+        ym(6051055, "init", {
+            clickmap: true,
+            trackLinks: true,
+            accurateTrackBounce: true,
+            userParams: {
+                UserID: 8488671
+            },
+            webvisor: true
+        });
+    </script>
+    <noscript>
+        <div><img src="https://mc.yandex.ru/watch/6051055" style="position:absolute; left:-9999px;" alt="" /></div>
+    </noscript>
+    <!-- /Yandex.Metrika counter -->
+    <script type="text/javascript">
+        function yaCounterReachGoal(p) {
+            try {
+                ym(6051055, 'reachGoal', p);
+            } catch (e) { }
+        }
+    </script>
+    <script type='text/javascript'>
+        var _gaq = _gaq || [];
+
+        (function (i, s, o, g, r, a, m) {
+            i['GoogleAnalyticsObject'] = r; i[r] = i[r] || function () {
+                (i[r].q = i[r].q || []).push(arguments)
+            }, i[r].l = 1 * new Date(); a = s.createElement(o),
+                m = s.getElementsByTagName(o)[0]; a.async = 1; a.src = g; m.parentNode.insertBefore(a, m)
+        })(window, document, 'script', '//www.google-analytics.com/analytics.js', 'ga');
+
+        ga('create', 'UA-163162-4', 'auto', { 'userId': '8488671' });
+
+        ga(function (tracker) {
+            var clientId = tracker.get('clientId');
+            document.cookie = "_ga_cid=" + clientId + "; path=/";
+            ga('set', 'dimension1', clientId);
+        });
+
+        ga('set', 'dimension5', '8488671');
+
+        ga('require', 'displayfeatures');
+        ga('send', 'pageview');
+    </script>
+
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-RD9LL0K106"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag() { dataLayer.push(arguments); }
+        gtag('js', new Date());
+        if (window.location.host === 'www.fl.ru') {
+            gtag('config', 'G-RD9LL0K106');
+        } else {
+            gtag('config', 'G-RD9LL0K106', { 'debug_mode': true });
+        }
+    </script>
+    <script type="text/javascript">
+        !function () {
+            var t = document.createElement("script");
+            t.type = "text/javascript", t.async = !0, t.src = "https://vk.com/js/api/openapi.js?168", t.onload = function () {
+                VK.Retargeting.Init("VK-RTRG-770158-3bPSa"), VK.Retargeting.Hit()
+            }, document.head.appendChild(t)
+        }();
+    </script>
+    <noscript><img src="https://vk.com/rtrg?p=VK-RTRG-770158-3bPSa" style="position:fixed; left:-999px;"
+            alt="" /></noscript>
+    <!-- FLS-971
+<script async src="https://cdn.topmind.io/static/tracker.min.js"></script>
+<script type='text/javascript'>
+
+    window.$tmt = window.$tmt || function () {($tmt.q = $tmt.q || []).push(arguments)};
+    $tmt('init', '17', 'azovgoyb80', {initApiCall: true});
+
+        $tmt('setUserId', 8488671);
+    
+    $tmt('pageview');
+
+    // связывание с GA CID
+    if (typeof window.ga !== 'undefined' &&
+        typeof window.$tmt.q === 'undefined') {
+
+        ga(function (tracker) {
+            var gaId = tracker.get('clientId');
+            window.$tmt('setGa', gaId);
+        });
+    }
+
+    // связывание с ЯД
+    var metrikaCounterCode = '6051055';
+    document.addEventListener('yacounter'+metrikaCounterCode+'inited', (event) => {
+        window.$tmt('setYm', window['yaCounter' + metrikaCounterCode].getClientID());
+    });
+
+</script>
+-->
+
+    <footer id="i-footer" class="mt-auto i-footer">
+        <div class="container p-0">
+            <div class="row">
+                <div class="col-lg-12">
+                    <div class="line"></div>
+                </div>
+            </div>
+            <div class="row pt-16 pb-36">
+                <div class="col-lg-12">
+                    <div class="d-flex flex-row justify-content-between align-items-center mb-32">
+                        <div>
+                            <div>
+                                <div class="flex-row d-flex align-items-center">
+                                    <div class="d-none d-md-flex flex-row d-lg-none">
+                                        <div class="d-block d-md-inline-block mr-md-24 mb-36 mb-md-0 mt-md-0 mt-16">
+                                            © FL.ru, 2005 – 2024 </div>
+                                        <div class="d-block d-md-inline-block mr-md-24 mb-16 mb-md-0">
+                                            <a href="/about/" target="_blank">О проекте</a>
+                                        </div>
+                                        <div class="d-block d-md-inline-block mr-md-24 mb-16 mb-md-0">
+                                            <a href="/about/appendix_2_regulations.pdf" target="_blank">Правила</a>
+                                        </div>
+                                        <div class="d-block d-md-inline-block mr-md-24 mb-16 mb-md-0">
+                                            <a href="/security/" target="_blank">Безопасность</a>
+                                        </div>
+                                        <div class="d-block d-md-inline-block mr-md-24 mb-16 mb-md-0">
+                                            <a href="https://feedback.fl.ru/" data-id="userecho">Помощь</a>
+                                        </div>
+                                    </div>
+                                    <div class="d-none d-lg-flex">
+                                        <!-- <a class="d-flex align-items-center justify-content-center btn-ico shadow mr-16" target="_blank"
+                                       href="http://www.facebook.com/freelanceru">
+                                        <svg width="10" height="20">
+                                            <use xlink:href="#fb"></use>
+                                        </svg>
+                                    </a> -->
+                                        <a class="d-flex align-items-center justify-content-center d-block btn-ico shadow mr-16"
+                                            target="_blank" href="http://vk.com/free_lanceru">
+                                            <svg width="25" height="14">
+                                                <use xlink:href="#vk"></use>
+                                            </svg>
+                                        </a>
+                                        <a class="d-flex align-items-center justify-content-center btn-ico shadow mr-16"
+                                            target="_blank"
+                                            href="https://play.google.com/store/apps/details?id=ru.fl.flmobile&hl=ru&showAllReviews=true">
+                                            <svg width="20" height="20">
+                                                <use xlink:href="#android"></use>
+                                            </svg>
+                                        </a>
+                                        <a class="d-flex align-items-center justify-content-center d-block btn-ico shadow"
+                                            target="_blank" href="https://promo.fl.ru/pwa-prilozhenie-fl">
+                                            <svg width="20" height="20">
+                                                <use xlink:href="#ios"></use>
+                                            </svg>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="flex-row justify-content-between align-items-md-center d-flex">
+                                <a class="d-flex align-items-center justify-content-center" target="_blank"
+                                    href="https://sk.ru/">
+                                    <svg width="74" height="50">
+                                        <use xlink:href="#skolkovo"></use>
+                                    </svg>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="d-block d-lg-flex flex-row justify-content-between align-items-center">
+                        <div class="d-block flex-row d-md-none d-lg-flex">
+                            <div class="d-block d-md-inline-block mr-md-24 mb-36 mb-md-0 mt-md-0 mt-16">
+                                © FL.ru, 2005 – 2024
+                            </div>
+                            <div class="d-block d-md-inline-block mr-md-24 mb-16 mb-md-0">
+                                <a href="/about/" target="_blank">О проекте</a>
+                            </div>
+                            <div class="d-block d-md-inline-block mr-md-24 mb-16 mb-md-0">
+                                <a href="/about/appendix_2_regulations.pdf" target="_blank">Правила</a>
+                            </div>
+                            <div class="d-block d-md-inline-block mr-md-24 mb-16 mb-md-0">
+                                <a href="/security/" target="_blank">Безопасность</a>
+                            </div>
+                            <div class="d-block d-md-inline-block mr-md-24 mb-16 mb-md-0">
+                                <a href="https://feedback.fl.ru/" data-id="userecho">Помощь</a>
+                            </div>
+                        </div>
+                        <div class="d-block d-md-flex justify-content-between">
+                            <div class="align-items-lg-center d-flex flex-column d-lg-none">
+                                <div class="d-flex mt-16 mt-sm-0 mb-30 mb-md-0 align-items-center">
+                                    <!-- <a class="d-flex align-items-center justify-content-center btn-ico shadow mr-16" target="_blank"
+                                   href="http://www.facebook.com/freelanceru">
+                                    <svg width="10" height="20">
+                                        <use xlink:href="#fb"></use>
+                                    </svg>
+                                </a> -->
+                                    <a class="d-flex align-items-center justify-content-center d-block btn-ico shadow mr-16"
+                                        target="_blank" href="http://vk.com/free_lanceru">
+                                        <svg width="25" height="14">
+                                            <use xlink:href="#vk"></use>
+                                        </svg>
+                                    </a>
+                                    <a class="d-flex align-items-center justify-content-center btn-ico shadow mr-16"
+                                        target="_blank"
+                                        href="https://play.google.com/store/apps/details?id=ru.fl.flmobile&hl=ru&showAllReviews=true">
+                                        <svg width="20" height="20">
+                                            <use xlink:href="#android"></use>
+                                        </svg>
+                                    </a>
+                                    <a class="d-flex align-items-center justify-content-center d-block btn-ico shadow"
+                                        target="_blank" href="https://promo.fl.ru/pwa-prilozhenie-fl">
+                                        <svg width="20" height="20">
+                                            <use xlink:href="#ios"></use>
+                                        </svg>
+                                    </a>
+                                </div>
+                            </div>
+                            <div class="d-flex flex-row align-items-center">
+                                <div class="mr-24">Наши партнеры</div>
+                                <a class="d-flex align-items-center justify-content-center mr-16"
+                                    href="http://www.dizkon.ru/" target="_blank">
+                                    <svg width="84" height="21">
+                                        <use xlink:href="#dizkon"></use>
+                                    </svg>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-12 mt-32 mt-lg-36 pb-36 text-10 text-gray-str">
+                    Сведения об ООО «Ваан» внесены в реестр аккредитованных организаций, осуществляющих деятельность в
+                    области информационных технологий. ООО «Ваан» осуществляет деятельность, связанную с использованием
+                    информационных технологий, по разработке компьютерного программного обеспечения, предоставлению
+                    доступа к программе для ЭВМ и является правообладателем программы для ЭВМ «Платформа FL.ru (версия
+                    2.0)».
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script type='text/javascript'>
+        var _ues = {
+            host: 'feedback.fl.ru',
+            forum: '3',
+            lang: 'ru',
+            tab_show: false,
+            params: {}
+        };
+        (function () {
+            var _ue = document.createElement('script');
+            _ue.type = 'text/javascript';
+            _ue.async = true;
+            _ue.src = ('https:' == document.location.protocol ? 'https://' : 'http://') + 'cdn.userecho.com/js/widget-1.4.gz.js';
+            var s = document.getElementsByTagName('script')[0];
+            s.parentNode.insertBefore(_ue, s);
+        })();
+
+        (function () {
+            const userEchoHelp = document.querySelectorAll('.js-userecho-help');
+
+            userEchoHelp.forEach(function (item) {
+                item.onmouseover = function () {
+                    UE.Popin.preload();
+                }
+                item.onclick = function () {
+                    UE.Popin.show();
+                    return false;
+                }
+            });
+        })();
+    </script>
+
+    <!-- Scripts -->
+    <script src="https://cdn.fl.ru/assets/nav.9cb6cd195a99b61f0a5afd68ea3e2687.js"></script>
+    <script src="https://cdn.fl.ru/assets/all.de49a196bafa706ce48df4c8ebda5eb7.js"></script>
+    <script id="xcntmyAsync" type="text/javascript"> (function (d) {
+            var xscr = d.createElement('script'); xscr.async = 1; xscr.src = '//x.cnt.my/async/track/?r=' + Math.random(); var x
+                = d.getElementById('xcntmyAsync'); x.parentNode.insertBefore(xscr, x);
+        })(document);
+    </script>
+    <script src="https://cdn.fl.ru/assets/websocket.e98605fc01a51c7dc8f81fd8a83524f0.js"></script>
+    <script>
+        window.user = { "id": 8488671, "email": "aringai09@gmail.com", "photo_url": null, "logo_url": null, "profile_url": "https:\/\/www.fl.ru\/users\/aringai09\/", "showcase_url": "https:\/\/www.fl.ru\/users\/aringai09\/\/portfolio\/", "finance_url": "https:\/\/www.fl.ru\/users\/aringai09\/setup\/finance\/", "resume_url": null, "telegram_url": "https:\/\/t.me\/flru_bot?start=YXJpbmdhaTA5OmI3YzQ4MDZlNTY5ODNlMTM=", "reg_date": 1705784400000, "about_me": null, "role": "freelancer", "email_verified": true, "experience": null, "banned": false, "deleted": false, "sex": null, "username": "aringai09", "full_name": "", "first_name": null, "surname": null, "city": null, "country": null, "details": { "id": 8488671, "pro": false, "profi": false, "top_expert": false, "positive_reviews": 0, "neutral_reviews": 0, "negative_reviews": 0, "safe_deals": 0, "last_time": 1705838709000, "cost": [{ "duration": { "duration": 1, "unit": "hour" }, "price": { "amount": 0, "currency": "RUB" } }], "about_me": "", "portfolio_total": 0, "feedback_total": 0, "profile_completion": 0, "enable_edit_name": true, "show_received_amount": false, "received_amount": null, "accepted_for_beginners": null, "standard_service": { "limits": { "simple": 3, "pro": 7, "profi": 12, "top_expert": 12 }, "can_create": true, "count_active": 0 } }, "payment_details": null, "professions": [], "is_selfemployed": null, "identity_verify_status": null, "date_first_visit_onboard": null, "status_text": "", "main_spec": { "id": 0, "name": "\u041d\u0435\u0442 \u0441\u043f\u0435\u0446\u0438\u0430\u043b\u0438\u0437\u0430\u0446\u0438\u0438", "name_en": null, "ordering": null, "description": null, "rank": 2, "is_transaction_model": true, "prof_group": { "id": 0, "name": "\u0414\u0440\u0443\u0433\u043e\u0435", "name_en": null, "rank": 21, "link": "http:\/\/www.fl.ru\/catalog\/" } }, "badges": { "verified": false, "worked_together": 0, "received_amount": false, "is_transaction_model": true } };
+        window.feature_flag = { "experiment_8042": true, "kassacom_pro_pay": true, "experiment_2034": false, "mokka_payment": false, "part_pay_2598": false, "telegram_sms_fle_7079": true, "yandex_gpt_enable": true, "webinar_enable": true, "new_portfolio_enable": true, "standard_services_enabled": false, "standard_services_catalog_enabled": false };
+        window.csrf_token = "45kFcgX96wMdqBrExknahEzcSDO8TZDMXlf00rrN";
+        document.addEventListener('DOMContentLoaded', function () {
+            fetch('https://cdn.fl.ru/assets/icons.95f1647df82ab4c7e4a81d5418bba9ee.svg').then(function (response) {
+                return response.text();
+            }).then(function (content) {
+                document.querySelector('#svg-sprite').innerHTML = content;
+            });
+        });
+    </script>
+
+    <script src="https://cdn.fl.ru/assets/vue/manifest.f3c1de16134d3d3ec84e48c3bafc034a.js"></script>
+    <script src="https://cdn.fl.ru/assets/vue/vendor.e969f7e6eea41774277cd84bccee2ce9.js"></script>
+    <script src="https://cdn.fl.ru/assets/vue/entry-client.0779c79ad0b008cc62971a7dec15f528.js"></script>
+
+    <script src="https://cdn.fl.ru/assets/vendor.ac2cac139bac0aecfc7d1888ce2b5a0d.js"></script>
+    <script src="https://cdn.fl.ru/assets/popup.e4c66ff7884d38a61f20cdd247a5a3ee.js"></script>
+
+
+    <div id="cookie_accept"
+        class="fl-cookie d-flex flex-column flex-column-unset-md align-items-center justify-content-between px-24 px-lg-36 px-xl-48 py-16 shadow d-none">
+        <div class="d-none d-lg-inline-block">
+            <svg class="fl-cookie-icon-size">
+                <use xlink:href="#cookie"></use>
+            </svg>
+        </div>
+        <span class="fl-cookie-terms text-center text-md-left text-9 text-sm-7 text-xl-5">
+            Продолжая пользоваться сайтом, вы соглашаетесь с
+            <span>
+                <a href="https://st.fl.ru/about/documents/cookie_accept.pdf" target="_blank"
+                    class="text-decoration-none link-hover-danger text-blue">
+                    условиями использования файлов cookie
+                </a>
+            </span>
+        </span>
+        <div class="mt-16 mt-md-0">
+            <button type="button"
+                onclick="document.cookie = 'cookies_accepted=1;path=/;expires=Fri, 31 Dec 9999 23:59:59 GMT'; document.getElementById('cookie_accept').remove(); return false;"
+                class="btn btn-xs-round btn-primary text-nowrap text-8 fl-cookie-button">Соглашаюсь с условиями</button>
+        </div>
+    </div>
+    <script>
+        (function () {
+            const el = document.getElementById('cookie_accept');
+            if (!el) {
+                return;
+            }
+            const cookiesMatch = document.cookie.match(/cookies_accepted=(.+?)(;|$)/);
+            if (!cookiesMatch || 1 !== parseInt(cookiesMatch[1])) {
+                el.classList.remove("d-none");
+            }
+        })();
+    </script>
+</body>
+
+</html>
