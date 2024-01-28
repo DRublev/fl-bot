@@ -13,5 +13,6 @@ require (
 
 require (
 	github.com/axgle/mahonia v0.0.0-20180208002826-3358181d7394 // indirect
+	github.com/go-telegram/bot v1.0.1
 	github.com/playwright-community/playwright-go v0.4001.0
 )

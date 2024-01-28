@@ -9,6 +9,8 @@ github.com/go-jose/go-jose/v3 v3.0.1 h1:pWmKFVtt+Jl0vBZTIpz/eAKwsm6LkIxDVVbFHKkc
 github.com/go-jose/go-jose/v3 v3.0.1/go.mod h1:RNkWWRld676jZEYoV3+XK8L2ZnNSvIsxFMht0mSX+u8=
 github.com/go-stack/stack v1.8.1 h1:ntEHSVwIt7PNXNpgPmVfMrNhLtgjlmnZha2kOpuRiDw=
 github.com/go-stack/stack v1.8.1/go.mod h1:dcoOX6HbPZSZptuspn9bctJ+N/CnF5gGygcUP3XYfe4=
+github.com/go-telegram/bot v1.0.1 h1:Rxg5H6WLN36n1YWzw61O/+krbNM12E+d+BowkrFEcWA=
+github.com/go-telegram/bot v1.0.1/go.mod h1:i2TRs7fXWIeaceF3z7KzsMt/he0TwkVC680mvdTFYeM=
 github.com/google/go-cmp v0.5.0/go.mod h1:v8dTdLbMG2kIc/vJvl+f65V22dbkXbowE6jgT/gNBxE=
 github.com/playwright-community/playwright-go v0.4001.0 h1:2cBiTIjCvFu7zUrZ48C0YC2DIp90Tbudueq4brUGjHM=
 github.com/playwright-community/playwright-go v0.4001.0/go.mod h1:quEkYFrvvpQyGSxBjnYbGS52vrUDB2uaY1cOzkkSHCc=

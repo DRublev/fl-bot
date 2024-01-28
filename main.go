@@ -5,7 +5,6 @@
 // откликнуться на заказ
 
 
-
 // go parse rss https://github.com/mmcdole/gofeed
 // go playwright - https://pkg.go.dev/github.com/mxschmitt/playwright-go#Page
 // go http - https://pkg.go.dev/net/http
@@ -28,9 +27,10 @@ package main
 
 import (
 	"bufio"
+	"context"
 	"fmt"
+	"sync"
 
-	// "io/ioutil"
 	"strings"
 
 	"os"
@@ -39,7 +39,11 @@ import (
 	"github.com/playwright-community/playwright-go"
 
 	"log"
+	"os/signal"
 	"time"
+
+	"github.com/go-telegram/bot"
+	"github.com/go-telegram/bot/models"
 )
 
 // categories 3 10 17 19
@@ -55,9 +59,21 @@ import (
 	.py-32.text-right.unmobile.flex-shrink-0.ml-auto.mobile - бюджет и дедлайн
 */
 
+const TOKEN string = "6721949149:AAG7WYIY6PmJCmpJY5eA3Il12tQQNw1jjfE"
+
+var CHATS []string
+var WATCH_CATEGORIES []string
+
+var ctx context.Context
+
 func main() {
-	// now := time.Now()
-	// lastCheckDate := now.Add(-time.Hour * 3)
+	CHATS = []string{"972086219", "713587013"}
+	// CHATS = []string{"713587013"}
+	WATCH_CATEGORIES = []string{"3", "10", "17", "19"}
+	// WATCH_CATEGORIES = []string{"1", "2", "4", "5", "6", "7", "8", "9", "11", "3", "10", "17", "19"}
+
+	now := time.Now()
+	initialCheckDate := now.Add(time.Duration(-30) * time.Second)
 
 	// feed, err := rss.Fetch("https://www.fl.ru/rss/all.xml?category=3")
 	// if err != nil {
@@ -69,14 +85,34 @@ func main() {
 	// filteredItems := getMostRescentItems(feed.Items, &lastCheckDate)
 	// fmt.Print(len(filteredItems))
 
-	go getToken()
+	// go getToken()
+
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
+	defer cancel()
+
+	opts := []bot.Option{
+		bot.WithDefaultHandler(handleBotMessage),
+	}
+
+	b, err := bot.New(TOKEN, opts...)
+	if err != nil {
+		panic(err)
+	}
+
+	wg := &sync.WaitGroup{}
+	wg.Add(len(WATCH_CATEGORIES))
+	for _, category := range WATCH_CATEGORIES {
+		go watchCategory(wg, b, &ctx, category, initialCheckDate)
+	}
+
+	b.Start(ctx)
+
+	wg.Wait()
 
 	input := bufio.NewScanner(os.Stdin)
 	var kw string
-	// for kw != "e" {
 	input.Scan()
 	kw = input.Text()
-	// }
 	if kw == "e" {
 		return
 	}
@@ -95,14 +131,86 @@ func main() {
 	// defer browser.Close()
 }
 
-func getMostRescentItems(items []*rss.Item, lastCheck *time.Time) (filtered []*rss.Item) {
-	for _, item := range items {
-		if item.Date.After(*lastCheck) {
-			fmt.Print(item.Date, " | ", item.Title, " | ", item.Link, "\n")
-			filtered = append(filtered, item)
+func watchCategory(wg *sync.WaitGroup, b *bot.Bot, ctx *context.Context, category string, initialCheckDate time.Time) {
+	defer wg.Done()
+
+	fmt.Println("Watching category ", category)
+	lastCheckDate := initialCheckDate
+
+	for range time.Tick(time.Second * 5) {
+		if ctx != nil {
+			// Тут можно юзать каналы
+			rescentItems := getItemsForCategory(&category, &lastCheckDate)
+			fmt.Println("len items ", len(rescentItems))
+			sendUpdates(ctx, b, &rescentItems)
+		} else {
+			fmt.Println("Timer tick, but ctx is nil")
+
 		}
 	}
-	return
+
+}
+
+func handleBotMessage(c context.Context, b *bot.Bot, update *models.Update) {
+	fmt.Println(update.Message.Chat.ID)
+	b.SendMessage(ctx, &bot.SendMessageParams{
+		ChatID: update.Message.Chat.ID,
+		Text:   update.Message.Text,
+	})
+}
+
+func sendUpdates(ctx *context.Context, b *bot.Bot, items *[]rss.Item) {
+	for _, item := range *items {
+		message := formatUpdateMessage(&item)
+
+		for _, chatId := range CHATS {
+			_, err := b.SendMessage(*ctx, &bot.SendMessageParams{
+				ChatID: chatId,
+				Text:   message,
+			})
+			if err != nil {
+				fmt.Println("Error sending update message: ", err)
+			}
+		}
+	}
+}
+
+func formatUpdateMessage(item *rss.Item) string {
+	message := "[" + item.Date.Local().Format("15:04:05 02.01.2006") + "] " + item.Title + "\n" + item.Content + "\n" + item.Link
+
+	message += "\n"
+
+	return message
+}
+
+func getItemsForCategory(category *string, lastCheckDate *time.Time) []rss.Item {
+	if time.Now().Local().Hour() > 22 || time.Now().Local().Hour() < 8 {
+		*lastCheckDate = time.Now().Add(time.Duration(-30) * time.Second)
+
+		return []rss.Item{}
+	}
+	feed, err := rss.Fetch("https://www.fl.ru/rss/all.xml?category=" + *category)
+	if err != nil {
+		log.Default().Println("Error getting items for category ", *category, "\n", err, "\n\n")
+	}
+	mostRescent := getMostRescentItems(feed.Items, *lastCheckDate)
+	fmt.Println("items ", lastCheckDate.Local().String(), " ", feed.Items[0].Date.Local().String(), " ", feed.Items[0].Title, " ", len(feed.Items), " ", len(mostRescent))
+	if len(mostRescent) > 0 {
+		*lastCheckDate = mostRescent[0].Date
+	}
+
+	return mostRescent
+}
+
+func getMostRescentItems(items []*rss.Item, lastCheck time.Time) []rss.Item {
+	filtered := []rss.Item{}
+	for _, item := range items {
+		if item.Date.After(lastCheck) {
+			fmt.Print(item.Date, " | ", item.Title, " | ", item.Link, "\n")
+			filtered = append(filtered, *item)
+		}
+	}
+	return filtered
 }
 
 // name="websocket-token" - meta token
