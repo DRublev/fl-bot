@@ -5,6 +5,7 @@ go 1.21.6
 require github.com/SlyMarbo/rss v1.0.5
 
 require (
+	fl.ru/chromeproxy v0.0.0-00010101000000-000000000000 // indirect
 	github.com/Davincible/chromedp-undetected v1.3.5 // indirect
 	github.com/Xuanwo/go-locale v1.1.0 // indirect
 	github.com/chromedp/cdproto v0.0.0-20240127002248-bd7a66284627 // indirect
@@ -35,3 +36,5 @@ require (
 	github.com/go-telegram/bot v1.0.1
 	github.com/playwright-community/playwright-go v0.4101.0
 )
+
+replace fl.ru/chromeproxy => ./chrome-proxy

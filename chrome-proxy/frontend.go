@@ -20,8 +20,8 @@ const html = `<!DOCTYPE html>
     <title>Remote Chrome Frontend</title>
     <style>
         canvas {
-            width: 90vw;
-            height: 90vh;
+            width: 100vw;
+            height: 100vh;
             border: gray dotted 1px;
             padding: 0;
             margin: auto;
@@ -36,7 +36,7 @@ const html = `<!DOCTYPE html>
         }
     </style>
 </head>
-<body>
+<body style="overflow:scroll">
     <canvas tabindex="1" oncontextmenu="return false;"></canvas>
     <input id="insert" type="text" placeholder="Enter text to paste (press ENTER key to submit)"/>
 </body>
@@ -91,7 +91,7 @@ const html = `<!DOCTYPE html>
             let img = new Image();
 
             img.onload = function() {
-              ctx.drawImage(img, 0, 0);
+              ctx.drawImage(img, 0, 0, data.params.metadata.deviceHeight, data.params.metadata.deviceWidth);
             };
             img.src = "data:image/jpeg;base64," + image;
             ws.send(JSON.stringify({

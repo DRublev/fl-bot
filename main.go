@@ -26,10 +26,12 @@ package main
 
 import (
 	"bufio"
-	"chromeproxy"
 	"context"
+	"errors"
 	"fmt"
 	"sync"
+
+	"fl.ru/chromeproxy"
 
 	"strings"
 
@@ -107,7 +109,7 @@ func main() {
 	// wg.Add(1)
 	// go getToken()
 	// }
-	cancelChrome := login()
+	_, cancelChrome := login()
 	defer cancelChrome()
 
 	for _, category := range WATCH_CATEGORIES {
@@ -388,7 +390,7 @@ func launchInChrome(url string, tasks chromedp.Tasks) (target.ID, error) {
 
 }
 
-func login() func() error {
+func login() (chan bool, func() error) {
 	url := "https://www.fl.ru/account/login/"
 	// url := "https://www.google.com/recaptcha/api2/demo"
 	chromeproxy.PrepareProxy(":9223", ":9221", chromedp.DisableGPU)
@@ -399,48 +401,40 @@ func login() func() error {
 	}
 	ctx := chromeproxy.GetTarget(targetId)
 
-	err = chromedp.Run(ctx, chromedp.Tasks{
-		// chromedp.Evaluate("() => (window.csrf_token && !document.querySelector(`[data-id='qa-head-sign-in']`)) || '1234123'", nil),
-		// chromedp.Evaluate("() => (window.csrf_token && !document.querySelector(`[data-id='qa-head-sign-in']`)) || '1234123'", nil),
-		// chromedp.Evaluate("() => (window.csrf_token && !document.querySelector(`[data-id='qa-head-sign-in']`)) || '1234123'", nil),
-		// chromedp.WaitVisible(`#recaptcha-element`, chromedp.NodeVisible),
-		// chromedp.WaitVisible(`.recaptcha-checkbox-border`, chromedp.NodeVisible),
-		// chromedp.Evaluate("setTimeout(() => document.querySelector('.recaptcha-checkbox-border').click(), 1000)", nil),
-		chromedp.ActionFunc(func(ctx context.Context) error {
-			fmt.Println("Before click")
-			return nil
-		}),
-		// chromedp.Click(`.recaptcha-checkbox-border`, chromedp.NodeVisible),
-		chromedp.WaitVisible(`#rc-imageselect`, chromedp.NodeVisible),
+	isSucceed := make(chan bool)
 
-		// chromedp.ActionFunc(func(ctx context.Context) error {
-		// 	var res []byte
-		// 	chromedp.Evaluate("setTimeout(() => document.querySelector('#recaptcha-element iframe .recaptcha-checkbox-border').click(), 3000)", res)
-		// 	fmt.Println("res clicking", len(res), res)
-		// 	return nil
-		// }),
-		// chromedp.Click(`.recaptcha-checkbox-border`),
-		// chromedp.ActionFunc(func(ctx context.Context) error {
-		// 	fmt.Println("Click .recaptcha-checkbox-border")
-		// 	return nil
-		// }),
-		// chromedp.WaitVisible(`#rc-imageselect`, chromedp.NodeVisible),
-		chromedp.ActionFunc(func(ctx context.Context) error {
-			fmt.Println("Wait for #rc-imageselect")
-			return nil
-		}),
-		chromedp.ActionFunc(func(ctx context.Context) error {
-			fmt.Printf("Login here: http://127.0.0.1:9221/?id=%s", targetId)
-			return nil
-		}),
-	})
+	go func() {
+		err = chromedp.Run(ctx, chromedp.Tasks{
+			// chromedp.Evaluate("() => (window.csrf_token && !document.querySelector(`[data-id='qa-head-sign-in']`)) || '1234123'", nil),
+			chromedp.ActionFunc(func(ctx context.Context) error {
+				fmt.Println("Login here: http://192.168.3.17:9221/?id=" + targetId)
+				return nil
+			}),
+		})
 
-	if err != nil {
-		chromeproxy.CloseTarget(targetId)
-		log.Fatalln("Error logging in: ", err)
-	}
+		if err != nil {
+			chromeproxy.CloseTarget(targetId)
+			isSucceed <- false
+			log.Println("Error logging in: ", err)
+		}
+	}()
 
-	return func() error {
+	go func() {
+		err := chromedp.Run(ctx, chromedp.Tasks{
+			chromedp.InnerHTML(`.recaptcha-success`, nil, chromedp.NodeVisible),
+			chromedp.ActionFunc(func(ctx context.Context) error {
+				log.Print("Captcha solved!")
+				isSucceed <- true
+				return nil
+			}),
+		})
+		if err != nil && !errors.Is(err, context.Canceled) {
+			isSucceed <- false
+			log.Println("Error waiting capcha solved: ", err)
+		}
+	}()
+
+	return isSucceed, func() error {
 		err := chromeproxy.CloseTarget(targetId)
 		return err
 	}
