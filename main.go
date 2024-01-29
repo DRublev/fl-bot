@@ -29,6 +29,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net"
 	"sync"
 
 	"fl.ru/chromeproxy"
@@ -417,7 +418,7 @@ func login(b *bot.Bot, botCtx context.Context) (chan bool, func() error) {
 				return nil
 			}),
 		})
-		if err!= nil {
+		if err != nil {
 			log.Fatalln("Error running chromedp task", err)
 			isSucceed <- false
 		}
@@ -434,12 +435,12 @@ func login(b *bot.Bot, botCtx context.Context) (chan bool, func() error) {
 			// chromedp.Evaluate("() => (window.csrf_token && !document.querySelector(`[data-id='qa-head-sign-in']`)) || '1234123'", nil),
 			chromedp.ActionFunc(func(ctx context.Context) error {
 				fmt.Println("Captcha clicked ", string(result), len(result))
-				msg :="Login here: http://192.168.3.17:9221/?id=" + targetId
+				msg := "Login here: http://192.168.3.21:9221/?id=" + targetId
 				b.SendMessage(botCtx, &bot.SendMessageParams{
-					ChatID:              CHATS[0],
-					Text:                string(msg),
+					ChatID: CHATS[0],
+					Text:   string(msg),
 				})
-				fmt.Println("Login here: http://192.168.3.17:9221/?id=" + targetId)
+				fmt.Println("Login here: http://192.168.3.21:9221/?id=" + targetId)
 				return nil
 			}),
 		})
@@ -471,6 +472,27 @@ func login(b *bot.Bot, botCtx context.Context) (chan bool, func() error) {
 		err := chromeproxy.CloseTarget(targetId)
 		return err
 	}
+}
+
+func getLocalIp() string {
+	ifaces, _ := net.Interfaces()
+	var ip net.IP
+
+	// handle err
+	for _, i := range ifaces {
+		addrs, _ := i.Addrs()
+		// handle err
+		for _, addr := range addrs {
+			switch v := addr.(type) {
+			case *net.IPNet:
+				ip = v.IP
+			case *net.IPAddr:
+				ip = v.IP
+			}
+			// process IP address
+		}
+	}
+	return ip.String()
 }
 
 // Write to file

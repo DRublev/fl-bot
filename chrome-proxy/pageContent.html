@@ -1,22 +1,4 @@
-package chromeproxy
-
-import (
-	"context"
-	"fmt"
-	"io/ioutil"
-	"log"
-	"net/http"
-	"path"
-	"path/filepath"
-	"runtime"
-	"time"
-
-	"github.com/gorilla/mux"
-	"github.com/gorilla/websocket"
-)
-
-// avoid any packaging by including the front-end html as a variable
-const HTML = `<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -49,19 +31,33 @@ const HTML = `<!DOCTYPE html>
 </body>
 <footer>
     <script>
-
-        /**
-         * https://chromedevtools.github.io/devtools-protocol/tot/Emulation/#method-setDeviceMetricsOverride
-         * On page load send event with device with/height
-         * (width, height, 1.0, false)
-         */
-
         const urlParams = new URLSearchParams(window.location.search);
         const target = urlParams.get('id') || "";
 
         const canvas = document.querySelector("canvas");
-        const ctx = canvas.getContext("2d");
+
+        const dpr = window.devicePixelRatio;
+        const ctx = canvas.getContext("2d", { alpha: false });
+
+        const rect = canvas.getBoundingClientRect();
+
         const insert = document.getElementById("insert");
+
+        // Set the "actual" size of the canvas
+        canvas.width = rect.width * dpr;
+        canvas.height = rect.height * dpr;
+
+        ctx.scale(dpr, dpr);
+
+        // Set the "drawn" size of the canvas
+        canvas.style.width = `${rect.width}px`;
+        canvas.style.height = `${rect.height}px`;
+
+        const rerender = () => {
+            ctx.drawImage(canvas, 0, 0);
+            requestAnimationFrame(rerender)
+        }
+        // rerender()
 
         let sessionId = null;
 
@@ -69,6 +65,7 @@ const HTML = `<!DOCTYPE html>
         const id = () => {
             return _id++;
         };
+
 
         const ws = new WebSocket(((window.location.protocol === "https:") ? "wss://" : "ws://") + window.location.host + "/ws/" + target);
         ws.onopen = function () {
@@ -78,16 +75,6 @@ const HTML = `<!DOCTYPE html>
                 params: {
                     targetId: target,
                     flatten: true,
-                },
-            }));
-            ws.send(JSON.stringify({
-                id: id(),
-                method: 'Emulation.setDeviceMetricsOverride',
-                params: {
-                    width: window.screen.width,
-                    height: window.screen.height,
-                    deviceScaleFactor: 1,
-                    mobile: false,
                 },
             }));
         };
@@ -109,23 +96,29 @@ const HTML = `<!DOCTYPE html>
                         },
                     }));
                     resizeEvent()
+
                     break;
                 case "Page.screencastFrame":
                     let image = data.params.data;
-                    let img = new Image();
+                    const img = new Image();
+                    img.src = "data:image/jpeg;base64," + image;
 
                     img.onload = function () {
-                        ctx.drawImage(img, 0, 0, data.params.metadata.deviceHeight, data.params.metadata.deviceWidth);
+                        ctx.drawImage(img, 0, 0, window.visualViewport.width * dpr, window.visualViewport.height * dpr)
+                        // requestAnimationFrame(() => {
+                        // })
+
                     };
-                    img.src = "data:image/jpeg;base64," + image;
-                    ws.send(JSON.stringify({
-                        sessionId,
-                        id: id(),
-                        method: 'Page.screencastFrameAck',
-                        params: {
-                            sessionId: data.params.sessionId
-                        },
-                    }));
+                    setTimeout(() => {
+                        ws.send(JSON.stringify({
+                            sessionId,
+                            id: id(),
+                            method: 'Page.visualViewportcastFrameAck',
+                            params: {
+                                sessionId: data.params.sessionId
+                            },
+                        }));
+                    })
                     break;
                 default:
                     break;
@@ -249,22 +242,29 @@ const HTML = `<!DOCTYPE html>
             if (sessionId === null)
                 return
 
-            let { width, height } = canvas.getBoundingClientRect();
-            width = Math.floor(width);
-            height = Math.floor(height);
+            // let { width, height } = canvas.getBoundingClientRect();
+            // width = Math.floor(width);
+            // height = Math.floor(height);
 
-            ctx.canvas.width = width;
-            ctx.canvas.height = height;
+            requestAnimationFrame(() => {
+                canvas.width = rect.width * dpr;
+                canvas.height = rect.height * dpr;
+
+                ctx.scale(dpr, dpr);
+
+                canvas.style.width = `${rect.width}px`;
+                canvas.style.height = `${rect.height}px`;
+            })
 
             ws.send(JSON.stringify({
                 sessionId,
                 id: id(),
                 method: 'Emulation.setDeviceMetricsOverride',
                 params: {
-                    width: window.screen.width,
-                    height: window.screen.height,
+                    width: window.visualViewport.width * dpr,
+                    height: window.visualViewport.height * dpr,
                     deviceScaleFactor: 1,
-                    mobile: (width <= 760)
+                    mobile: true
 
                 },
             }));
@@ -273,100 +273,4 @@ const HTML = `<!DOCTYPE html>
     </script>
 </footer>
 
-</html>`
-
-var timeout = time.Second * 15
-
-// startFrontEnd starts a blocking web server that serves the front-end alongside the websocket proxy
-func startFrontEnd(frontendListenAddr string, cdpPort string, cancelChan chan bool) {
-	r := mux.NewRouter()
-
-	srv := &http.Server{
-		Addr:         frontendListenAddr,
-		WriteTimeout: timeout,
-		ReadTimeout:  timeout,
-		IdleTimeout:  time.Second * 60,
-		Handler:      r,
-	}
-	fmt.Println("Starting frontend at: ", frontendListenAddr)
-
-	html := getHtml()
-
-	r.HandleFunc("/", func(writer http.ResponseWriter, request *http.Request) {
-
-		_, err := writer.Write([]byte(html))
-		if err != nil {
-			log.Printf("Error writing response: %s", err)
-		}
-	})
-	r.HandleFunc("/ws/{id}", func(writer http.ResponseWriter, request *http.Request) {
-		upgrader := websocket.Upgrader{
-			ReadBufferSize:  1024,
-			WriteBufferSize: 1024,
-		}
-		conn, err := upgrader.Upgrade(writer, request, nil)
-		if err != nil {
-			log.Printf("Error upgrading connection: %s", err)
-			return
-		}
-
-		id := mux.Vars(request)["id"]
-		proxy, err := startWebsocketProxy(cdpPort, id, conn)
-		if err != nil {
-			log.Printf("Error starting websocket proxy: %s", err)
-			return
-		}
-		for {
-			messageType, message, err := conn.ReadMessage()
-			if err != nil {
-				break
-			}
-			err = proxy.WriteMessage(messageType, message)
-			if err != nil {
-				break
-			}
-		}
-		_ = proxy.Close()
-	})
-
-	go func() {
-		if err := srv.ListenAndServe(); err != nil {
-			if err != http.ErrServerClosed {
-				log.Printf("Error starting frontend: %s", err)
-			}
-		}
-	}()
-
-	<-cancelChan
-	stopFrontEnd(srv)
-}
-
-func stopFrontEnd(srv *http.Server) {
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-	err := srv.Shutdown(ctx)
-	if err != nil {
-		log.Printf("Error shutting down frontend: %v", err)
-		return
-	}
-}
-
-const htmlFileName = "pageContent.html"
-
-func getHtml() string {
-	_, base, _, _ := runtime.Caller(0)
-	dir := path.Join(path.Dir(base))
-	rootDir := filepath.Dir(dir)
-
-	htmlPath := path.Join(rootDir, "chrome-proxy", htmlFileName)
-	htmlBytes, err := ioutil.ReadFile(htmlPath)
-fmt.Println("Html file: ", htmlPath)
-	if err != nil {
-		log.Printf("Error getting html content: %s", err)
-
-		errorContent := "NO CONTENT FILE DETECTED \n" + err.Error()
-		return errorContent
-	}
-
-	return string(htmlBytes)
-}
+</html>
