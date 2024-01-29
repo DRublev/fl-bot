@@ -31,33 +31,19 @@
 </body>
 <footer>
     <script>
+
+        /**
+         * https://chromedevtools.github.io/devtools-protocol/tot/Emulation/#method-setDeviceMetricsOverride
+         * On page load send event with device with/height
+         * (width, height, 1.0, false)
+         */
+
         const urlParams = new URLSearchParams(window.location.search);
         const target = urlParams.get('id') || "";
 
         const canvas = document.querySelector("canvas");
-
-        const dpr = window.devicePixelRatio;
         const ctx = canvas.getContext("2d", { alpha: false });
-
-        const rect = canvas.getBoundingClientRect();
-
         const insert = document.getElementById("insert");
-
-        // Set the "actual" size of the canvas
-        canvas.width = rect.width * dpr;
-        canvas.height = rect.height * dpr;
-
-        ctx.scale(dpr, dpr);
-
-        // Set the "drawn" size of the canvas
-        canvas.style.width = `${rect.width}px`;
-        canvas.style.height = `${rect.height}px`;
-
-        const rerender = () => {
-            ctx.drawImage(canvas, 0, 0);
-            requestAnimationFrame(rerender)
-        }
-        // rerender()
 
         let sessionId = null;
 
@@ -65,7 +51,6 @@
         const id = () => {
             return _id++;
         };
-
 
         const ws = new WebSocket(((window.location.protocol === "https:") ? "wss://" : "ws://") + window.location.host + "/ws/" + target);
         ws.onopen = function () {
@@ -92,33 +77,34 @@
                         method: 'Page.startScreencast',
                         params: {
                             format: "jpeg",
-                            quality: 100
+                            quality: 80
                         },
                     }));
                     resizeEvent()
-
                     break;
                 case "Page.screencastFrame":
                     let image = data.params.data;
-                    const img = new Image();
-                    img.src = "data:image/jpeg;base64," + image;
+                    let img = new Image();
 
                     img.onload = function () {
-                        ctx.drawImage(img, 0, 0, window.visualViewport.width * dpr, window.visualViewport.height * dpr)
-                        // requestAnimationFrame(() => {
-                        // })
+                        requestAnimationFrame(() => {
 
+                        });
+                        ctx.drawImage(img, 0, 0, window.visualViewport.width, window.visualViewport.height);
                     };
+                    img.src = "data:image/jpeg;base64," + image;
+
                     setTimeout(() => {
+
                         ws.send(JSON.stringify({
                             sessionId,
                             id: id(),
-                            method: 'Page.visualViewportcastFrameAck',
+                            method: 'Page.screencastFrameAck',
                             params: {
                                 sessionId: data.params.sessionId
                             },
                         }));
-                    })
+                    }, 0)
                     break;
                 default:
                     break;
@@ -242,27 +228,25 @@
             if (sessionId === null)
                 return
 
-            // let { width, height } = canvas.getBoundingClientRect();
-            // width = Math.floor(width);
-            // height = Math.floor(height);
-
             requestAnimationFrame(() => {
-                canvas.width = rect.width * dpr;
-                canvas.height = rect.height * dpr;
+                let { width, height } = canvas.getBoundingClientRect();
+                width = Math.floor(width);
+                height = Math.floor(height);
 
-                ctx.scale(dpr, dpr);
-
-                canvas.style.width = `${rect.width}px`;
-                canvas.style.height = `${rect.height}px`;
+                ctx.canvas.width = width;
+                ctx.canvas.height = height;
             })
+
 
             ws.send(JSON.stringify({
                 sessionId,
                 id: id(),
                 method: 'Emulation.setDeviceMetricsOverride',
                 params: {
-                    width: window.visualViewport.width * dpr,
-                    height: window.visualViewport.height * dpr,
+                    width: window.visualViewport.width,
+                    height: window.visualViewport.height,
+                    screenWidth: window.screen.width,
+                    screenHeight: window.screen.height,
                     deviceScaleFactor: 1,
                     mobile: true
 
