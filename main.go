@@ -29,7 +29,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net"
 	"sync"
 
 	"fl.ru/chromeproxy"
@@ -39,7 +38,6 @@ import (
 	"os"
 
 	"github.com/SlyMarbo/rss"
-	"github.com/chromedp/cdproto/target"
 	"github.com/chromedp/chromedp"
 	"github.com/playwright-community/playwright-go"
 
@@ -48,7 +46,6 @@ import (
 	"time"
 
 	"github.com/go-telegram/bot"
-	"github.com/go-telegram/bot/models"
 )
 
 // categories 3 10 17 19
@@ -94,22 +91,10 @@ func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer cancel()
 
-	opts := []bot.Option{
-		bot.WithDefaultHandler(handleBotMessage),
-	}
-
-	b, err := bot.New(TOKEN, opts...)
-	if err != nil {
-		panic(err)
-	}
+	startBot(nil)
 
 	wg := &sync.WaitGroup{}
 
-	// select {
-	// case <-time.Tick(time.Second * 10):
-	// wg.Add(1)
-	// go getToken()
-	// }
 	_, cancelChrome := login(b, ctx)
 	defer cancelChrome()
 
@@ -117,8 +102,6 @@ func main() {
 		wg.Add(1)
 		go watchCategory(wg, b, ctx, category, initialCheckDate)
 	}
-
-	b.Start(ctx)
 
 	wg.Wait()
 
@@ -168,28 +151,20 @@ func watchCategory(wg *sync.WaitGroup, b *bot.Bot, ctx context.Context, category
 
 }
 
-func handleBotMessage(c context.Context, b *bot.Bot, update *models.Update) {
-	fmt.Println(update.Message.Chat.ID)
-	b.SendMessage(ctx, &bot.SendMessageParams{
-		ChatID: update.Message.Chat.ID,
-		Text:   update.Message.Text,
-	})
-}
-
 func sendUpdates(ctx *context.Context, b *bot.Bot, items *[]rss.Item) {
-	// for _, item := range *items {
-	// 	message := formatUpdateMessage(&item)
+	for _, item := range *items {
+		message := formatUpdateMessage(&item)
 
-	// 	for _, chatId := range CHATS {
-	// 		_, err := b.SendMessage(*ctx, &bot.SendMessageParams{
-	// 			ChatID: chatId,
-	// 			Text:   message,
-	// 		})
-	// 		if err != nil {
-	// 			fmt.Println("Error sending update message: ", err)
-	// 		}
-	// 	}
-	// }
+		for _, chatId := range CHATS {
+			_, err := b.SendMessage(*ctx, &bot.SendMessageParams{
+				ChatID: chatId,
+				Text:   message,
+			})
+			if err != nil {
+				fmt.Println("Error sending update message: ", err)
+			}
+		}
+	}
 }
 
 func formatUpdateMessage(item *rss.Item) string {
@@ -262,38 +237,6 @@ func getToken() {
 	if err != nil {
 		log.Fatal("No able to create page", err)
 	}
-
-	page.On("load", func() {
-		fmt.Println("page load", page.URL())
-		// if strings.Contains(page.URL(), "fl.ru") {
-		// 	content, err := page.InnerHTML("body")
-		// 	if err != nil {
-		// 		log.Fatal("cannot get page content", err)
-		// 	}
-		// 	if strings.Contains(content, "_TOKEN_KEY") {
-		// 		ioutil.WriteFile("./tokenPageContent.html", []byte(content), 0644)
-		// 		log.Fatalln("Founded TOKEN!!!")
-		// 	}
-		// }
-	})
-
-	page.On("frameattached", func() {
-		fmt.Println("page frameattached", page.URL())
-	})
-
-	page.On("framenavigated", func() {
-		fmt.Println("page framenavigated", page.URL())
-	})
-
-	page.On("domcontentloaded", func() {
-		fmt.Println("page domcontentloaded", page.URL())
-	})
-
-	page.On("requestfinished", func(data playwright.Request) {
-		if strings.Contains("fl", data.URL()) {
-			fmt.Println("page requestfinished", data.URL())
-		}
-	})
 
 	// page.OnDOMContentLoaded(func(p playwright.Page) {
 	// 	fmt.Println("page domcontentloaded", page.URL())
@@ -369,32 +312,12 @@ func launchPlaywright(browserOptions playwright.BrowserTypeLaunchOptions) playwr
 	return browser
 }
 
-func getProxyCtx(url string) (target.ID, error) {
-	chromeproxy.PrepareProxy(":9222", ":9221", chromedp.DisableGPU)
-	targetId, err := chromeproxy.NewTab(url, chromedp.WithLogf(log.Printf))
-	return targetId, err
-}
-
-func launchInChrome(url string, tasks chromedp.Tasks) (target.ID, error) {
-	chromeproxy.PrepareProxy(":9223", ":9221", chromedp.DisableGPU)
-
-	targetId, err := chromeproxy.NewTab(url, chromedp.WithLogf(log.Printf))
-	if err != nil {
-		log.Fatalln("Error launching chrome: ", err.Error())
-	}
-
-	context := chromeproxy.GetTarget(targetId)
-
-	execErr := chromedp.Run(context, tasks)
-
-	return targetId, execErr
-
-}
-
 func login(b *bot.Bot, botCtx context.Context) (chan bool, func() error) {
 	url := "https://www.fl.ru/account/login/"
 	// url := "https://www.google.com/recaptcha/api2/demo"
 	chromeproxy.PrepareProxy(":9223", ":9221", chromedp.DisableGPU)
+
+	ip := getLocalIp()
 
 	targetId, err := chromeproxy.NewTab(url, chromedp.WithLogf(log.Printf))
 	if err != nil {
@@ -435,12 +358,12 @@ func login(b *bot.Bot, botCtx context.Context) (chan bool, func() error) {
 			// chromedp.Evaluate("() => (window.csrf_token && !document.querySelector(`[data-id='qa-head-sign-in']`)) || '1234123'", nil),
 			chromedp.ActionFunc(func(ctx context.Context) error {
 				fmt.Println("Captcha clicked ", string(result), len(result))
-				msg := "Login here: http://192.168.3.21:9221/?id=" + targetId
+				msg := "Login here: http://" + ip + ":9221/?id=" + string(targetId)
 				b.SendMessage(botCtx, &bot.SendMessageParams{
 					ChatID: CHATS[0],
 					Text:   string(msg),
 				})
-				fmt.Println("Login here: http://192.168.3.21:9221/?id=" + targetId)
+				fmt.Println("Login here: http://" + ip + ":9221/?id=" + string(targetId))
 				return nil
 			}),
 		})
@@ -474,26 +397,12 @@ func login(b *bot.Bot, botCtx context.Context) (chan bool, func() error) {
 	}
 }
 
-func getLocalIp() string {
-	ifaces, _ := net.Interfaces()
-	var ip net.IP
-
-	// handle err
-	for _, i := range ifaces {
-		addrs, _ := i.Addrs()
-		// handle err
-		for _, addr := range addrs {
-			switch v := addr.(type) {
-			case *net.IPNet:
-				ip = v.IP
-			case *net.IPAddr:
-				ip = v.IP
-			}
-			// process IP address
-		}
-	}
-	return ip.String()
-}
+// Run every X seconds
+// select {
+// case <-time.Tick(time.Second * 10):
+// wg.Add(1)
+// go getToken()
+// }
 
 // Write to file
 // testProjUrl := "https://www.fl.ru/projects/5275913/razrabotat-poster-dlya-dokumentalnogo-tsikla-monologov-tolko-ip-ili-samozanyatyiy.html"
