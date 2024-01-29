@@ -4,7 +4,6 @@
 // заполинть шаблон
 // откликнуться на заказ
 
-
 // go parse rss https://github.com/mmcdole/gofeed
 // go playwright - https://pkg.go.dev/github.com/mxschmitt/playwright-go#Page
 // go http - https://pkg.go.dev/net/http
@@ -27,6 +26,7 @@ package main
 
 import (
 	"bufio"
+	"chromeproxy"
 	"context"
 	"fmt"
 	"sync"
@@ -36,6 +36,8 @@ import (
 	"os"
 
 	"github.com/SlyMarbo/rss"
+	"github.com/chromedp/cdproto/target"
+	"github.com/chromedp/chromedp"
 	"github.com/playwright-community/playwright-go"
 
 	"log"
@@ -69,7 +71,8 @@ var ctx context.Context
 func main() {
 	CHATS = []string{"972086219", "713587013"}
 	// CHATS = []string{"713587013"}
-	WATCH_CATEGORIES = []string{"3", "10", "17", "19"}
+	// WATCH_CATEGORIES = []string{"3", "10", "17", "19"}
+	WATCH_CATEGORIES = []string{}
 	// WATCH_CATEGORIES = []string{"1", "2", "4", "5", "6", "7", "8", "9", "11", "3", "10", "17", "19"}
 
 	now := time.Now()
@@ -85,8 +88,6 @@ func main() {
 	// filteredItems := getMostRescentItems(feed.Items, &lastCheckDate)
 	// fmt.Print(len(filteredItems))
 
-	// go getToken()
-
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer cancel()
 
@@ -100,9 +101,18 @@ func main() {
 	}
 
 	wg := &sync.WaitGroup{}
-	wg.Add(len(WATCH_CATEGORIES))
+
+	// select {
+	// case <-time.Tick(time.Second * 10):
+	// wg.Add(1)
+	// go getToken()
+	// }
+	cancelChrome := login()
+	defer cancelChrome()
+
 	for _, category := range WATCH_CATEGORIES {
-		go watchCategory(wg, b, &ctx, category, initialCheckDate)
+		wg.Add(1)
+		go watchCategory(wg, b, ctx, category, initialCheckDate)
 	}
 
 	b.Start(ctx)
@@ -131,21 +141,25 @@ func main() {
 	// defer browser.Close()
 }
 
-func watchCategory(wg *sync.WaitGroup, b *bot.Bot, ctx *context.Context, category string, initialCheckDate time.Time) {
+func watchCategory(wg *sync.WaitGroup, b *bot.Bot, ctx context.Context, category string, initialCheckDate time.Time) {
 	defer wg.Done()
 
 	fmt.Println("Watching category ", category)
 	lastCheckDate := initialCheckDate
 
 	for range time.Tick(time.Second * 5) {
-		if ctx != nil {
-			// Тут можно юзать каналы
-			rescentItems := getItemsForCategory(&category, &lastCheckDate)
-			fmt.Println("len items ", len(rescentItems))
-			sendUpdates(ctx, b, &rescentItems)
-		} else {
-			fmt.Println("Timer tick, but ctx is nil")
-
+		select {
+		case <-ctx.Done():
+			return
+		default:
+			if ctx != nil {
+				// Тут можно юзать каналы
+				rescentItems := getItemsForCategory(&category, &lastCheckDate)
+				fmt.Println("len items ", len(rescentItems))
+				sendUpdates(&ctx, b, &rescentItems)
+			} else {
+				fmt.Println("Timer tick, but ctx is nil")
+			}
 		}
 	}
 
@@ -160,19 +174,19 @@ func handleBotMessage(c context.Context, b *bot.Bot, update *models.Update) {
 }
 
 func sendUpdates(ctx *context.Context, b *bot.Bot, items *[]rss.Item) {
-	for _, item := range *items {
-		message := formatUpdateMessage(&item)
+	// for _, item := range *items {
+	// 	message := formatUpdateMessage(&item)
 
-		for _, chatId := range CHATS {
-			_, err := b.SendMessage(*ctx, &bot.SendMessageParams{
-				ChatID: chatId,
-				Text:   message,
-			})
-			if err != nil {
-				fmt.Println("Error sending update message: ", err)
-			}
-		}
-	}
+	// 	for _, chatId := range CHATS {
+	// 		_, err := b.SendMessage(*ctx, &bot.SendMessageParams{
+	// 			ChatID: chatId,
+	// 			Text:   message,
+	// 		})
+	// 		if err != nil {
+	// 			fmt.Println("Error sending update message: ", err)
+	// 		}
+	// 	}
+	// }
 }
 
 func formatUpdateMessage(item *rss.Item) string {
@@ -226,15 +240,22 @@ var r = e.content
 
 // token - window.csrf_token
 
+// 178.34.162.1
 func getToken() {
 	headless := false
 	var options playwright.BrowserTypeLaunchOptions
 	options.Headless = &headless
+	// options.Args = []string{"--proxy-server=http://178.34.162.1:80"}
 
-	browser := launchBrowser(options)
-	// defer browser.Close()
+	// options.Proxy = &playwright.Proxy{
+	// 	// Server: "localhost:80",
+	// 	// Server: "http://178.34.162.1:80",
+	// }
 
+	browser := launchPlaywright(options)
+	defer browser.Close()
 	page, err := browser.NewPage()
+
 	if err != nil {
 		log.Fatal("No able to create page", err)
 	}
@@ -255,44 +276,14 @@ func getToken() {
 
 	page.On("frameattached", func() {
 		fmt.Println("page frameattached", page.URL())
-		// if strings.Contains(page.URL(), "fl.ru") {
-		// 	content, err := page.InnerHTML("body")
-		// 	if err != nil {
-		// 		log.Fatal("cannot get page content", err)
-		// 	}
-		// 	if strings.Contains(content, "_TOKEN_KEY") {
-		// 		ioutil.WriteFile("./tokenPageContent.html", []byte(content), 0644)
-		// 		log.Fatalln("Founded TOKEN!!!")
-		// 	}
-		// }
 	})
 
 	page.On("framenavigated", func() {
 		fmt.Println("page framenavigated", page.URL())
-		// if strings.Contains(page.URL(), "fl.ru") {
-		// 	_, err := page.InnerHTML("body")
-		// 	if err != nil {
-		// 		log.Fatal("cannot get page content", err)
-		// 	}
-		// 		if strings.Contains(content, "_TOKEN_KEY") {
-		// 			ioutil.WriteFile("./tokenPageContent.html", []byte(content), 0644)
-		// 			log.Fatalln("Founded TOKEN!!!")
-		// 		}
-		// }
 	})
 
 	page.On("domcontentloaded", func() {
 		fmt.Println("page domcontentloaded", page.URL())
-		// if strings.Contains(page.URL(), "fl.ru") {
-		// 	content, err := page.InnerHTML("body")
-		// 	if err != nil {
-		// 		log.Fatal("cannot get page content", err)
-		// 	}
-		// 	if strings.Contains(content, "_TOKEN_KEY") {
-		// 		ioutil.WriteFile("./tokenPageContent.html", []byte(content), 0644)
-		// 		log.Fatalln("Founded TOKEN!!!")
-		// 	}
-		// }
 	})
 
 	page.On("requestfinished", func(data playwright.Request) {
@@ -303,14 +294,6 @@ func getToken() {
 
 	// page.OnDOMContentLoaded(func(p playwright.Page) {
 	// 	fmt.Println("page domcontentloaded", page.URL())
-	// 	if strings.Contains(p.URL(), "fl.ru") {
-	// 		content, err := p.InnerHTML("body")
-	// 		if err != nil {
-	// 			log.Fatal("cannot get p content", err)
-	// 		}
-	// 		title, _ := p.Title()
-	// 		ioutil.WriteFile("./"+title+".html", []byte(content), 0644)
-	// 	}
 	// })
 
 	_, err = page.Goto("https://www.fl.ru/account/login/")
@@ -368,7 +351,7 @@ func getToken() {
 	// log.Fatalln(err)
 }
 
-func launchBrowser(browserOptions playwright.BrowserTypeLaunchOptions) playwright.Browser {
+func launchPlaywright(browserOptions playwright.BrowserTypeLaunchOptions) playwright.Browser {
 	pw, err := playwright.Run()
 	if err != nil {
 		log.Fatal("Error running playwright", err)
@@ -381,6 +364,86 @@ func launchBrowser(browserOptions playwright.BrowserTypeLaunchOptions) playwrigh
 	}
 	// browser.On('disconnected', closeAppFunction())
 	return browser
+}
+
+func getProxyCtx(url string) (target.ID, error) {
+	chromeproxy.PrepareProxy(":9222", ":9221", chromedp.DisableGPU)
+	targetId, err := chromeproxy.NewTab(url, chromedp.WithLogf(log.Printf))
+	return targetId, err
+}
+
+func launchInChrome(url string, tasks chromedp.Tasks) (target.ID, error) {
+	chromeproxy.PrepareProxy(":9223", ":9221", chromedp.DisableGPU)
+
+	targetId, err := chromeproxy.NewTab(url, chromedp.WithLogf(log.Printf))
+	if err != nil {
+		log.Fatalln("Error launching chrome: ", err.Error())
+	}
+
+	context := chromeproxy.GetTarget(targetId)
+
+	execErr := chromedp.Run(context, tasks)
+
+	return targetId, execErr
+
+}
+
+func login() func() error {
+	url := "https://www.fl.ru/account/login/"
+	// url := "https://www.google.com/recaptcha/api2/demo"
+	chromeproxy.PrepareProxy(":9223", ":9221", chromedp.DisableGPU)
+
+	targetId, err := chromeproxy.NewTab(url, chromedp.WithLogf(log.Printf))
+	if err != nil {
+		log.Fatalln("Error launching chrome: ", err.Error())
+	}
+	ctx := chromeproxy.GetTarget(targetId)
+
+	err = chromedp.Run(ctx, chromedp.Tasks{
+		// chromedp.Evaluate("() => (window.csrf_token && !document.querySelector(`[data-id='qa-head-sign-in']`)) || '1234123'", nil),
+		// chromedp.Evaluate("() => (window.csrf_token && !document.querySelector(`[data-id='qa-head-sign-in']`)) || '1234123'", nil),
+		// chromedp.Evaluate("() => (window.csrf_token && !document.querySelector(`[data-id='qa-head-sign-in']`)) || '1234123'", nil),
+		// chromedp.WaitVisible(`#recaptcha-element`, chromedp.NodeVisible),
+		// chromedp.WaitVisible(`.recaptcha-checkbox-border`, chromedp.NodeVisible),
+		// chromedp.Evaluate("setTimeout(() => document.querySelector('.recaptcha-checkbox-border').click(), 1000)", nil),
+		chromedp.ActionFunc(func(ctx context.Context) error {
+			fmt.Println("Before click")
+			return nil
+		}),
+		// chromedp.Click(`.recaptcha-checkbox-border`, chromedp.NodeVisible),
+		chromedp.WaitVisible(`#rc-imageselect`, chromedp.NodeVisible),
+
+		// chromedp.ActionFunc(func(ctx context.Context) error {
+		// 	var res []byte
+		// 	chromedp.Evaluate("setTimeout(() => document.querySelector('#recaptcha-element iframe .recaptcha-checkbox-border').click(), 3000)", res)
+		// 	fmt.Println("res clicking", len(res), res)
+		// 	return nil
+		// }),
+		// chromedp.Click(`.recaptcha-checkbox-border`),
+		// chromedp.ActionFunc(func(ctx context.Context) error {
+		// 	fmt.Println("Click .recaptcha-checkbox-border")
+		// 	return nil
+		// }),
+		// chromedp.WaitVisible(`#rc-imageselect`, chromedp.NodeVisible),
+		chromedp.ActionFunc(func(ctx context.Context) error {
+			fmt.Println("Wait for #rc-imageselect")
+			return nil
+		}),
+		chromedp.ActionFunc(func(ctx context.Context) error {
+			fmt.Printf("Login here: http://127.0.0.1:9221/?id=%s", targetId)
+			return nil
+		}),
+	})
+
+	if err != nil {
+		chromeproxy.CloseTarget(targetId)
+		log.Fatalln("Error logging in: ", err)
+	}
+
+	return func() error {
+		err := chromeproxy.CloseTarget(targetId)
+		return err
+	}
 }
 
 // Write to file
