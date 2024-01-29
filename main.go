@@ -71,8 +71,8 @@ var WATCH_CATEGORIES []string
 var ctx context.Context
 
 func main() {
-	CHATS = []string{"972086219", "713587013"}
-	// CHATS = []string{"713587013"}
+	// CHATS = []string{"972086219", "713587013"}
+	CHATS = []string{"713587013"}
 	// WATCH_CATEGORIES = []string{"3", "10", "17", "19"}
 	WATCH_CATEGORIES = []string{}
 	// WATCH_CATEGORIES = []string{"1", "2", "4", "5", "6", "7", "8", "9", "11", "3", "10", "17", "19"}
@@ -109,7 +109,7 @@ func main() {
 	// wg.Add(1)
 	// go getToken()
 	// }
-	_, cancelChrome := login()
+	_, cancelChrome := login(b, ctx)
 	defer cancelChrome()
 
 	for _, category := range WATCH_CATEGORIES {
@@ -390,7 +390,7 @@ func launchInChrome(url string, tasks chromedp.Tasks) (target.ID, error) {
 
 }
 
-func login() (chan bool, func() error) {
+func login(b *bot.Bot, botCtx context.Context) (chan bool, func() error) {
 	url := "https://www.fl.ru/account/login/"
 	// url := "https://www.google.com/recaptcha/api2/demo"
 	chromeproxy.PrepareProxy(":9223", ":9221", chromedp.DisableGPU)
@@ -401,12 +401,44 @@ func login() (chan bool, func() error) {
 	}
 	ctx := chromeproxy.GetTarget(targetId)
 
-	isSucceed := make(chan bool)
+	isSucceed := make(chan bool, 1)
 
 	go func() {
 		err = chromedp.Run(ctx, chromedp.Tasks{
+			chromedp.WaitReady("window"),
+			chromedp.WaitVisible("input[name='username']", chromedp.NodeVisible),
+			chromedp.WaitVisible("input[name='password']", chromedp.NodeVisible),
+
+			chromedp.Evaluate("(() => { const username = document.querySelector(`input[name='username']`); username.value = 'asd' })()", nil),
+			chromedp.Evaluate("(() => { const username = document.querySelector(`input[name='password']`); username.value = '123' })()", nil),
 			// chromedp.Evaluate("() => (window.csrf_token && !document.querySelector(`[data-id='qa-head-sign-in']`)) || '1234123'", nil),
 			chromedp.ActionFunc(func(ctx context.Context) error {
+				fmt.Println("Login info entered")
+				return nil
+			}),
+		})
+		if err!= nil {
+			log.Fatalln("Error running chromedp task", err)
+			isSucceed <- false
+		}
+	}()
+
+	go func() {
+		var result []byte
+		err = chromedp.Run(ctx, chromedp.Tasks{
+			chromedp.WaitReady("window"),
+			// chromedp.Evaluate("document.querySelector('iframe #recaptchsa-anchor').click()", &result),
+
+			// chromedp.WaitVisible(".recaptcha-checkbox-border"),
+			// chromedp.Click(".recaptcha-checkbox-border"),
+			// chromedp.Evaluate("() => (window.csrf_token && !document.querySelector(`[data-id='qa-head-sign-in']`)) || '1234123'", nil),
+			chromedp.ActionFunc(func(ctx context.Context) error {
+				fmt.Println("Captcha clicked ", string(result), len(result))
+				msg :="Login here: http://192.168.3.17:9221/?id=" + targetId
+				b.SendMessage(botCtx, &bot.SendMessageParams{
+					ChatID:              CHATS[0],
+					Text:                string(msg),
+				})
 				fmt.Println("Login here: http://192.168.3.17:9221/?id=" + targetId)
 				return nil
 			}),
@@ -421,7 +453,8 @@ func login() (chan bool, func() error) {
 
 	go func() {
 		err := chromedp.Run(ctx, chromedp.Tasks{
-			chromedp.InnerHTML(`.recaptcha-success`, nil, chromedp.NodeVisible),
+			chromedp.WaitVisible(`.recaptcha-checkbox-checked`),
+			chromedp.Click("#submit-button", chromedp.NodeNotVisible),
 			chromedp.ActionFunc(func(ctx context.Context) error {
 				log.Print("Captcha solved!")
 				isSucceed <- true

@@ -108,6 +108,7 @@ const html = `<!DOCTYPE html>
         }
       };
       ws.onclose = function(e) {
+        console.log(e)
         const body = document.querySelector("body");
         if (sessionId === null) {
           body.innerText = "No session was found";
