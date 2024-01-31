@@ -5,11 +5,7 @@
 // откликнуться на заказ
 
 // go parse rss https://github.com/mmcdole/gofeed
-// go playwright - https://pkg.go.dev/github.com/mxschmitt/playwright-go#Page
 // go http - https://pkg.go.dev/net/http
-
-// Installing Playwright deps (for docker)
-// https://github.com/playwright-community/playwright-go#installation
 
 // Проект по откликам на fl https://github.com/valentinkh1/fl.ru.am/blob/master/src/common/js/background.js
 
@@ -29,17 +25,16 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io/ioutil"
+	"net/http"
 	"sync"
 
 	"fl.ru/chromeproxy"
-
-	"strings"
 
 	"os"
 
 	"github.com/SlyMarbo/rss"
 	"github.com/chromedp/chromedp"
-	"github.com/playwright-community/playwright-go"
 
 	"log"
 	"os/signal"
@@ -68,6 +63,9 @@ var WATCH_CATEGORIES []string
 
 var ctx context.Context
 
+var csrfToken string = "o36az3gzMApvH2fARzszWHBg6da7PPSXtiGmvyM2"
+var cookies string = "__ddg1_=RUHPwLZ1Zbwp2AP3LBHX; PHPSESSID=ngBgFPnF9cZZCrCE2eKMcR9LIg7qxG17VJUIAVvm; XSRF-TOKEN=o36az3gzMApvH2fARzszWHBg6da7PPSXtiGmvyM2"
+
 func main() {
 	// CHATS = []string{"972086219", "713587013"}
 	CHATS = []string{"713587013"}
@@ -75,18 +73,8 @@ func main() {
 	WATCH_CATEGORIES = []string{}
 	// WATCH_CATEGORIES = []string{"1", "2", "4", "5", "6", "7", "8", "9", "11", "3", "10", "17", "19"}
 
-	now := time.Now()
-	initialCheckDate := now.Add(time.Duration(-30) * time.Second)
-
-	// feed, err := rss.Fetch("https://www.fl.ru/rss/all.xml?category=3")
-	// if err != nil {
-	// 	fmt.Print("err", err)
-	// 	return
-	// }
-
-	// fmt.Print(lastCheckDate.Local(), "\n")
-	// filteredItems := getMostRescentItems(feed.Items, &lastCheckDate)
-	// fmt.Print(len(filteredItems))
+	// now := time.Now()
+	// initialCheckDate := now.Add(time.Duration(-30) * time.Second)
 
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer cancel()
@@ -95,13 +83,15 @@ func main() {
 
 	wg := &sync.WaitGroup{}
 
-	_, cancelChrome := login(b, ctx)
+	token, _, cancelChrome := login(b, ctx)
 	defer cancelChrome()
 
-	for _, category := range WATCH_CATEGORIES {
-		wg.Add(1)
-		go watchCategory(wg, b, ctx, category, initialCheckDate)
-	}
+	go getChatMessages(token)
+
+	// for _, category := range WATCH_CATEGORIES {
+	// 	wg.Add(1)
+	// 	go watchCategory(wg, b, ctx, category, initialCheckDate)
+	// }
 
 	wg.Wait()
 
@@ -112,19 +102,32 @@ func main() {
 	if kw == "e" {
 		return
 	}
+}
 
-	// browser := launchBrowser()
+func getChatMessages(token string) {
+	req, err := http.NewRequest("GET", "https://www.fl.ru/projects/offers/?limit=20&dialogues=1&deleted=1&sort=lastMessage&offset=0", nil)
+	if err != nil {
+		fmt.Println("Error getting chats", err)
+	}
 
-	// page, err := browser.NewPage()
-	// if err != nil {
-	// 	log.Fatal("No able to create page", err)
-	// }
+	req.Header.Set("x-csrf-token", csrfToken)
+	req.Header.Set("x-xsrf-token", csrfToken)
+	req.Header.Set("Cookie", cookies)
 
-	// if _, err = page.Goto("https://www.fl.ru/account/login/"); err != nil {
-	// 	log.Fatal("Login page open failed", err)
-	// }
+	res, err := http.DefaultClient.Do(req)
 
-	// defer browser.Close()
+	if err != nil {
+		fmt.Println("Error getting chats res", err)
+	}
+
+	fmt.Println("response", res.Status)
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		fmt.Println("Error getting chats res", err)
+	}
+	defer res.Body.Close()
+
+	fmt.Println("Response: ", string(body))
 }
 
 func watchCategory(wg *sync.WaitGroup, b *bot.Bot, ctx context.Context, category string, initialCheckDate time.Time) {
@@ -218,103 +221,14 @@ var r = e.content
 
 // token - window.csrf_token
 
-// 178.34.162.1
-func getToken() {
-	headless := false
-	var options playwright.BrowserTypeLaunchOptions
-	options.Headless = &headless
-	// options.Args = []string{"--proxy-server=http://178.34.162.1:80"}
+// script := "function(){const check = () => {alert('check is started');const content = document.innerHTML;if (content.includes('_TOKEN_KEY')) {alert('TOKEN FOUND');}}window.onload(check);check()}()";
+// var initScript playwright.Script
+// initScript.Content = &script
+// err = page.AddInitScript(initScript)
+// log.Fatalln(err)
 
-	// options.Proxy = &playwright.Proxy{
-	// 	// Server: "localhost:80",
-	// 	// Server: "http://178.34.162.1:80",
-	// }
-
-	browser := launchPlaywright(options)
-	defer browser.Close()
-	page, err := browser.NewPage()
-
-	if err != nil {
-		log.Fatal("No able to create page", err)
-	}
-
-	// page.OnDOMContentLoaded(func(p playwright.Page) {
-	// 	fmt.Println("page domcontentloaded", page.URL())
-	// })
-
-	_, err = page.Goto("https://www.fl.ru/account/login/")
-	if err != nil {
-		log.Fatal("Login page open failed", err)
-	}
-	var waitTimeout float64 = 5 * 1000 * 60
-	var waitOptions playwright.PageWaitForFunctionOptions
-	waitOptions.Timeout = &waitTimeout
-	handle, err := page.WaitForFunction("() => window.csrf_token && !document.querySelector(`[data-id='qa-head-sign-in']`)", nil, waitOptions)
-	// handle, err := page.WaitForFunction("() => window.csrf_token", nil)
-
-	if err != nil {
-		log.Fatalln("Handle js evaluate fatal", err)
-	}
-	fmt.Println("handle res: ")
-	fmt.Println(handle)
-
-	tokenData, err := page.Evaluate("(() => {return window.csrf_token})()")
-	if err != nil {
-		log.Fatalln("Cannot get ttoken", err)
-	}
-	fmt.Println("TOKEN DATA:")
-	fmt.Println(tokenData)
-
-	input := bufio.NewScanner(os.Stdin)
-	input.Scan()
-	entered := input.Text()
-	if entered == "token" {
-		tokenData, err := page.Evaluate("(() => {return window.csrf_token})()")
-		if err != nil {
-			log.Fatalln("Cannot get ttoken", err)
-		}
-		fmt.Println("TOKEN DATA:")
-		fmt.Println(tokenData)
-	} else {
-		fmt.Println("Not token: ", entered)
-	}
-	if entered == "e" {
-		return
-	} else {
-		for entered != "e" {
-			input.Scan()
-			entered = input.Text()
-			if entered == "e" {
-				return
-			}
-		}
-	}
-
-	// script := "function(){const check = () => {alert('check is started');const content = document.innerHTML;if (content.includes('_TOKEN_KEY')) {alert('TOKEN FOUND');}}window.onload(check);check()}()";
-	// var initScript playwright.Script
-	// initScript.Content = &script
-	// err = page.AddInitScript(initScript)
-	// log.Fatalln(err)
-}
-
-func launchPlaywright(browserOptions playwright.BrowserTypeLaunchOptions) playwright.Browser {
-	pw, err := playwright.Run()
-	if err != nil {
-		log.Fatal("Error running playwright", err)
-	}
-
-	browser, err := pw.Chromium.Launch(browserOptions)
-
-	if err != nil {
-		log.Fatal("Error running browser", err)
-	}
-	// browser.On('disconnected', closeAppFunction())
-	return browser
-}
-
-func login(b *bot.Bot, botCtx context.Context) (chan bool, func() error) {
+func login(b *bot.Bot, botCtx context.Context) (string, chan bool, func() error) {
 	url := "https://www.fl.ru/account/login/"
-	// url := "https://www.google.com/recaptcha/api2/demo"
 	chromeproxy.PrepareProxy(":9223", ":9221", chromedp.DisableGPU)
 
 	ip := getLocalIp()
@@ -327,14 +241,22 @@ func login(b *bot.Bot, botCtx context.Context) (chan bool, func() error) {
 
 	isSucceed := make(chan bool, 1)
 
+	token := "jdd5q2MM27OsfXv8PQhz32FTNUrMXvgrizUYJl4S"
+	if len(token) > 0 {
+		isSucceed <- true
+		return token, isSucceed, func() error {
+			return nil
+		}
+	}
+
 	go func() {
 		err = chromedp.Run(ctx, chromedp.Tasks{
 			chromedp.WaitReady("window"),
 			chromedp.WaitVisible("input[name='username']", chromedp.NodeVisible),
 			chromedp.WaitVisible("input[name='password']", chromedp.NodeVisible),
 
-			chromedp.Evaluate("(() => { const username = document.querySelector(`input[name='username']`); username.value = 'asd' })()", nil),
-			chromedp.Evaluate("(() => { const username = document.querySelector(`input[name='password']`); username.value = '123' })()", nil),
+			chromedp.Evaluate("(() => { const username = document.querySelector(`input[name='username']`); username.value = 'Nast-ka.666@mail.ru' })()", nil),
+			chromedp.Evaluate("(() => { const username = document.querySelector(`input[name='password']`); username.value = 'fyrgonSk-Doo2023' })()", nil),
 			// chromedp.Evaluate("() => (window.csrf_token && !document.querySelector(`[data-id='qa-head-sign-in']`)) || '1234123'", nil),
 			chromedp.ActionFunc(func(ctx context.Context) error {
 				fmt.Println("Login info entered")
@@ -358,11 +280,11 @@ func login(b *bot.Bot, botCtx context.Context) (chan bool, func() error) {
 			// chromedp.Evaluate("() => (window.csrf_token && !document.querySelector(`[data-id='qa-head-sign-in']`)) || '1234123'", nil),
 			chromedp.ActionFunc(func(ctx context.Context) error {
 				fmt.Println("Captcha clicked ", string(result), len(result))
-				msg := "Login here: http://" + ip + ":9221/?id=" + string(targetId)
-				b.SendMessage(botCtx, &bot.SendMessageParams{
-					ChatID: CHATS[0],
-					Text:   string(msg),
-				})
+				// msg := "Login here: http://" + ip + ":9221/?id=" + string(targetId)
+				// b.SendMessage(botCtx, &bot.SendMessageParams{
+				// 	ChatID: CHATS[0],
+				// 	Text:   string(msg),
+				// })
 				fmt.Println("Login here: http://" + ip + ":9221/?id=" + string(targetId))
 				return nil
 			}),
@@ -372,6 +294,88 @@ func login(b *bot.Bot, botCtx context.Context) (chan bool, func() error) {
 			chromeproxy.CloseTarget(targetId)
 			isSucceed <- false
 			log.Println("Error logging in: ", err)
+		}
+	}()
+
+	go func() {
+		// isTokenFoundC := make(chan bool, 1)
+		var result []byte
+		err := chromedp.Run(ctx, chromedp.Tasks{
+			chromedp.WaitReady("window"),
+			chromedp.WaitVisible("#navbarRightDropdown"),
+			chromedp.ActionFunc(func(ctx context.Context) error {
+				select {
+				case <-time.Tick((time.Second * 2)):
+					return nil
+				}
+			}),
+			chromedp.Evaluate("window.csrf_token", &result),
+			chromedp.ActionFunc(func(ctx context.Context) error {
+				fmt.Println("result token", string(result))
+				if len(result) > 0 {
+					isSucceed <- true
+				}
+				return nil
+			}),
+		})
+
+		if err != nil && !errors.Is(err, context.Canceled) {
+			isSucceed <- false
+			log.Println("Error waiting for auth token: ", err)
+		}
+	}()
+
+	go func() {
+		var result []byte
+		err := chromedp.Run(ctx, chromedp.Tasks{
+			chromedp.WaitReady("window"),
+			chromedp.WaitVisible("#navbarRightDropdown"),
+			chromedp.ActionFunc(func(ctx context.Context) error {
+				select {
+				case <-time.Tick((time.Second * 2)):
+					return nil
+				}
+			}),
+			chromedp.Evaluate("document.querySelector(`meta[name='csrf-token']`).content", &result),
+			chromedp.ActionFunc(func(ctx context.Context) error {
+				fmt.Println("csrf token", string(result))
+				if len(result) > 0 {
+					csrfToken = string(result)
+				}
+				return nil
+			}),
+		})
+
+		if err != nil && !errors.Is(err, context.Canceled) {
+			isSucceed <- false
+			log.Println("Error waiting for auth token: ", err)
+		}
+	}()
+
+	go func() {
+		var result []byte
+		err := chromedp.Run(ctx, chromedp.Tasks{
+			chromedp.WaitReady("window"),
+			chromedp.WaitVisible("#navbarRightDropdown"),
+			chromedp.ActionFunc(func(ctx context.Context) error {
+				select {
+				case <-time.Tick((time.Second * 2)):
+					return nil
+				}
+			}),
+			chromedp.Evaluate("document.cookie", &result),
+			chromedp.ActionFunc(func(ctx context.Context) error {
+				fmt.Println("cookies", string(result))
+				if len(result) > 0 {
+					cookies = string(result)
+				}
+				return nil
+			}),
+		})
+
+		if err != nil && !errors.Is(err, context.Canceled) {
+			isSucceed <- false
+			log.Println("Error waiting for auth token: ", err)
 		}
 	}()
 
@@ -391,7 +395,7 @@ func login(b *bot.Bot, botCtx context.Context) (chan bool, func() error) {
 		}
 	}()
 
-	return isSucceed, func() error {
+	return token, isSucceed, func() error {
 		err := chromeproxy.CloseTarget(targetId)
 		return err
 	}

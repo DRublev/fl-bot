@@ -6,6 +6,7 @@ require github.com/SlyMarbo/rss v1.0.5
 
 require (
 	fl.ru/chromeproxy v0.0.0-00010101000000-000000000000 // indirect
+	github.com/2captcha/2captcha-go v1.1.4 // indirect
 	github.com/Davincible/chromedp-undetected v1.3.5 // indirect
 	github.com/Xuanwo/go-locale v1.1.0 // indirect
 	github.com/chromedp/cdproto v0.0.0-20240127002248-bd7a66284627 // indirect

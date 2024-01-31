@@ -1,3 +1,5 @@
+github.com/2captcha/2captcha-go v1.1.4 h1:Fm62VPvVhEHYQ8AI+/uquiTg41ml9f8ASjUkVuBvHcE=
+github.com/2captcha/2captcha-go v1.1.4/go.mod h1:hYOq+KVOq/0zAG6OTYW7Y313qDkHv58CcaOyjdBQSco=
 github.com/Davincible/chromedp-undetected v1.3.5 h1:OUla17uvqobu8atvhKEbvaT85TsLZEhrDUEgs65H7bo=
 github.com/Davincible/chromedp-undetected v1.3.5/go.mod h1:A8RL39TZqwzjliEkXFieMSIerNsP2TiJxRePFx79jr4=
 github.com/SlyMarbo/rss v1.0.5 h1:DPcZ4aOXXHJ5yNLXY1q/57frIixMmAvTtLxDE3fsMEI=

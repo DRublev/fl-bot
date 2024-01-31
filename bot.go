@@ -4,13 +4,12 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"os"
 
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
 )
 
-var token string
+var token string = "6721949149:AAG7WYIY6PmJCmpJY5eA3Il12tQQNw1jjfE"
 
 var b *bot.Bot
 
@@ -21,20 +20,18 @@ func startBot(opts []bot.Option) {
 
 	options := append([]bot.Option{
 		bot.WithDefaultHandler(handleBotMessage),
-	}, opts...)
+	})
 
-	token, exists := os.LookupEnv("TG_TOKEN")
-
-	if !exists || len([]rune(token)) == 0 {
-		log.Fatalln("No TG token provided!")
-	}
+	// token, _ := os.LookupEnv("TG_TOKEN")
+	// if !exists || len([]rune(token)) == 0 {
+	// 	log.Fatalln("No TG token provided!")
+	// }
 
 	bt, err := bot.New(token, options...)
 	if err != nil {
 		panic("Error while starting tg bot! \n" + err.Error())
 	}
 
-	b = bt
 	bt.Start(ctx)
 
 	log.Println("Tg bot inited successfully")
