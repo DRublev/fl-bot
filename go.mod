@@ -5,6 +5,7 @@ go 1.21.6
 require github.com/SlyMarbo/rss v1.0.5
 
 require (
+	fl.ru/bots v0.0.0-00010101000000-000000000000 // indirect
 	fl.ru/chromeproxy v0.0.0-00010101000000-000000000000 // indirect
 	github.com/2captcha/2captcha-go v1.1.4 // indirect
 	github.com/Davincible/chromedp-undetected v1.3.5 // indirect
@@ -39,3 +40,5 @@ require (
 )
 
 replace fl.ru/chromeproxy => ./chrome-proxy
+
+replace fl.ru/bots => ./bots

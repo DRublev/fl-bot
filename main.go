@@ -23,6 +23,7 @@ package main
 import (
 	"bufio"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -30,16 +31,18 @@ import (
 	"strings"
 	"sync"
 
+	"fl.ru/bots"
 	"fl.ru/chromeproxy"
 
 	"os"
 
-	"github.com/SlyMarbo/rss"
-	"github.com/chromedp/chromedp"
-
 	"log"
 	"os/signal"
 	"time"
+
+	"github.com/SlyMarbo/rss"
+	"github.com/chromedp/cdproto/network"
+	"github.com/chromedp/chromedp"
 
 	"github.com/go-telegram/bot"
 )
@@ -47,25 +50,33 @@ import (
 // categories 3 10 17 19
 
 /*
-	SELECTORS
-	project_info_5275913 - инфа с описанием и кнопкой отклика
-	a.ui-button._responsive._primary _md - кнопка отклика с про
-	#vacancy-offer button._primary - кнопка отклика, когда доступна
-	#vacancy-offer input[data-id="file"] - загрузка резюме, если доступна
-	#vacancy-offer textarea - поле для отклика
-	#projectp5275913 - описание проекта
-	.py-32.text-right.unmobile.flex-shrink-0.ml-auto.mobile - бюджет и дедлайн
+SELECTORS
+project_info_5275913 - инфа с описанием и кнопкой отклика
+a.ui-button._responsive._primary _md - кнопка отклика с про
+#vacancy-offer button._primary - кнопка отклика, когда доступна
+#vacancy-offer input[data-id="file"] - загрузка резюме, если доступна
+#vacancy-offer textarea - поле для отклика
+#projectp5275913 - описание проекта
+.py-32.text-right.unmobile.flex-shrink-0.ml-auto.mobile - бюджет и дедлайн
 */
-
-const TOKEN string = "6721949149:AAG7WYIY6PmJCmpJY5eA3Il12tQQNw1jjfE"
 
 var CHATS []string
 var WATCH_CATEGORIES []string
 
 var ctx context.Context
 
-var csrfToken string = "o36az3gzMApvH2fARzszWHBg6da7PPSXtiGmvyM2"
-var cookies string = "__ddg1_=RUHPwLZ1Zbwp2AP3LBHX; PHPSESSID=ngBgFPnF9cZZCrCE2eKMcR9LIg7qxG17VJUIAVvm; XSRF-TOKEN=o36az3gzMApvH2fARzszWHBg6da7PPSXtiGmvyM2"
+var csrfToken string = "\"4X7UcBStnbhXpWmqujzDO38csegsw7qK50cRq76I\""
+var cookies string = "\"uechat_3_pages_count=4;_ga_RD9LL0K106=GS1.1.1706716444.1.1.1706716484.0.0.0;pwd=ed02ae7a7ac284a3acb76c7abf1940b8;name=aringai09;_ga=GA1.2.1617029702.1706716445;uechat_3_mode=0;uechat_3_first_time=1706716445187;_ym_d=1706716445;_ym_uid=1706716445483799674;analytic_id=1706716447023416;_ym_visorc=w;PHPSESSID=k06LScKmXkhwwyaYaBKjFL9gR00YL4AFYQqUobJB;_gat=1;_gid=GA1.2.691180979.1706716445;uechat_3_disabled=true;id=8488671;XSRF-TOKEN=4X7UcBStnbhXpWmqujzDO38csegsw7qK50cRq76I;user_device_id=0fv59x3qw9thbxeh82v8hi5dw9ucyssm;_ym_isad=2;_ga_cid=1617029702.1706716445;__ddg1_=76ExwmPsn2gTwMmAA1PL;\""
+
+var notificationsBot *bot.Bot
+var isNotificationsBotReady chan bool = make(chan bool, 1)
+var offerChatsBot *bot.Bot
+var isOfferChatBotReady chan bool = make(chan bool, 1)
+
+// = "PHPSESSID=yzlIAzYjpr1wYVBb64ANQ4cy1VcADjt9GOpNsPOH;"+"\"XSRF-TOKEN=XI1rnYgonhbszJQjkMdQu6Wgn10HCdyuB1OQgWkX; _gid=GA1.2.1816440299.1706715424; _ga_cid=1405734.1706715424; _gat=1; _ym_uid=1706715424607799129; _ym_d=1706715424; _ym_isad=2; uechat_3_first_time=1706715424109; _ym_visorc=w; uechat_3_disabled=true; uechat_3_mode=0; analytic_id=1706715425730366; _ga_RD9LL0K106=GS1.1.1706715423.1.1.1706715474.0.0.0; _ga=GA1.2.1405734.1706715424; uechat_3_pages_count=4\""
+
+// Докинуть команду подписки
+// Писать последнию дату синхронизации в файл для каждого подписчика
 
 func main() {
 	// CHATS = []string{"972086219", "713587013"}
@@ -80,23 +91,51 @@ func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer cancel()
 
-	// startBot(nil)
-
 	wg := &sync.WaitGroup{}
 
-	isSucceed, cancelChrome := login(b, ctx)
-	defer cancelChrome()
+	go func() {
+		notificationsBot, err := bots.StartNotificationsBot()
+		if err != nil {
+			isNotificationsBotReady <- false
+			log.Panicln("Error staring notifications bot ", err)
+		}
+		isNotificationsBotReady <- notificationsBot != nil
+		notificationsBot.Start(ctx)
+	}()
 
-	isSuc := <-isSucceed
-	if isSuc {
-		getChatMessages()
-	} else {
-		log.Fatal("login failed")
+	fmt.Println("Starting offerChatsBot")
+	offerChatsBot, err := bots.StartOfferChatsBot()
+	if err != nil {
+		isOfferChatBotReady <- false
+		log.Panicln("Error staring notifications bot ", err)
+	}
+	fmt.Println("offerChatsBot defined", offerChatsBot)
+
+	isOfferChatBotReady <- offerChatsBot != nil
+	go func() {
+		offerChatsBot.Start(ctx)
+		fmt.Println("offerChatsBot started")
+	}()
+
+	if <-isNotificationsBotReady {
+		for _, category := range WATCH_CATEGORIES {
+			wg.Add(1)
+			go watchCategory(wg, ctx, category, initialCheckDate)
+		}
 	}
 
-	for _, category := range WATCH_CATEGORIES {
+	isSucceed := make(chan bool, 1)
+	if len(cookies) == 0 {
+		isOk, cancelChrome := login(notificationsBot)
+		isSucceed <- <-isOk
+		defer cancelChrome()
+	} else {
+		isSucceed <- true
+	}
+
+	if <-isSucceed {
 		wg.Add(1)
-		go watchCategory(wg, b, ctx, category, initialCheckDate)
+		go getChatMessages(&ctx, wg, offerChatsBot)
 	}
 
 	wg.Wait()
@@ -110,16 +149,43 @@ func main() {
 	}
 }
 
-func getChatMessages() {
+type OfferResponseItem struct {
+	Id          int    `json:id`
+	OrderUrl    string `json:order_url`
+	Title       string `json:title`
+	Description string `json:description`
+	ProjectId   int    `json:project_id`
+}
+
+type OffersResponse struct {
+	LastOfferTime int  `json:"last_offer_time"`
+	HasNextPage   bool `json:"has_next_page"`
+	// Отклики
+	Items [](map[string]any) `json:"items"`
+	// Все сообщения
+	Messages [](map[string]any) `json:"messages"`
+	// Список проектов == список чатов
+	Projects [](map[string]any) `json:"projects"`
+}
+
+// Мапа с проектами и месседжами
+// Нужно сматчить чаты в телеге с айдишниками авторов ?? - при /start просить логин из fl и запоминать
+// Нужно хранить все в файлах
+
+func getChatMessages(c *context.Context, wg *sync.WaitGroup, b *bot.Bot) {
+	defer wg.Done()
+
 	req, err := http.NewRequest("GET", "https://www.fl.ru/projects/offers/?limit=20&dialogues=1&deleted=1&sort=lastMessage&offset=0", nil)
 	if err != nil {
 		fmt.Println("Error getting chats", err)
 	}
+	fmt.Println("offerChatsBot", b)
 
 	fmt.Println("Getting chats with params \n" + strings.Trim(csrfToken, "\"") + "\n" + strings.Trim(cookies, "\""))
 	req.Header.Set("x-csrf-token", strings.Trim(csrfToken, "\""))
 	req.Header.Set("x-xsrf-token", strings.Trim(csrfToken, "\""))
 	req.Header.Set("Cookie", strings.Trim(cookies, "\""))
+	req.Header.Set("referer", "https://www.fl.ru/messages/")
 
 	res, err := http.DefaultClient.Do(req)
 
@@ -134,10 +200,65 @@ func getChatMessages() {
 	}
 	defer res.Body.Close()
 
-	fmt.Println("Response: ", len(string(body)))
+	var result OffersResponse
+
+	err = json.Unmarshal(body, &result)
+	if err != nil {
+		fmt.Println("Cannot unmarshal ", err)
+	}
+
+	// fmt.Println("Response: ", result.Items[0])
+	if <-isOfferChatBotReady {
+		for _, item := range result.Items {
+			sendNewMessages(c, b, item)
+		}
+	}
+
 }
 
-func watchCategory(wg *sync.WaitGroup, b *bot.Bot, ctx context.Context, category string, initialCheckDate time.Time) {
+func sendNewMessages(c *context.Context, b *bot.Bot, item map[string]any) {
+	for _, chatId := range CHATS {
+		orderUrl := item["order_url"].(string)
+		content := item["description"].(string)
+		message := "От: \n" + "По заказу " + orderUrl + "\n" + content
+		fmt.Println(b, chatId, "   ", message)
+		_, err := b.SendMessage(*c, &bot.SendMessageParams{
+			ChatID: chatId,
+			Text:   message,
+		})
+		if err != nil {
+			log.Println("Error sending message ", err)
+		}
+	}
+}
+
+func readMessage(projectId int, offerId int) {
+	// POST https://www.fl.ru/projects/5272136/offers/73529385/read/
+	req, err := http.NewRequest("POST", "https://www.fl.ru/projects/"+string(projectId)+"/offers/"+string(offerId)+"/read/", nil)
+	if err != nil {
+		log.Println("Error creating read message req", projectId, " ", offerId, " \n", err)
+		return
+	}
+
+	req.Header.Set("x-csrf-token", strings.Trim(csrfToken, "\""))
+	req.Header.Set("x-xsrf-token", strings.Trim(csrfToken, "\""))
+	req.Header.Set("Cookie", strings.Trim(cookies, "\""))
+	req.Header.Set("referer", "https://www.fl.ru/messages/")
+
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		log.Println("Failed mark message as read ", projectId, " ", offerId, " \n", err)
+		return
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode != 200 {
+		log.Println("Not ok reading", projectId, " ", offerId, ", code ", res.StatusCode)
+
+	}
+}
+
+func watchCategory(wg *sync.WaitGroup, ctx context.Context, category string, initialCheckDate time.Time) {
 	defer wg.Done()
 
 	fmt.Println("Watching category ", category)
@@ -152,7 +273,7 @@ func watchCategory(wg *sync.WaitGroup, b *bot.Bot, ctx context.Context, category
 				// Тут можно юзать каналы
 				rescentItems := getItemsForCategory(&category, &lastCheckDate)
 				fmt.Println("len items ", len(rescentItems))
-				sendUpdates(&ctx, b, &rescentItems)
+				sendUpdates(&rescentItems)
 			} else {
 				fmt.Println("Timer tick, but ctx is nil")
 			}
@@ -161,12 +282,12 @@ func watchCategory(wg *sync.WaitGroup, b *bot.Bot, ctx context.Context, category
 
 }
 
-func sendUpdates(ctx *context.Context, b *bot.Bot, items *[]rss.Item) {
+func sendUpdates(items *[]rss.Item) {
 	for _, item := range *items {
 		message := formatUpdateMessage(&item)
 
 		for _, chatId := range CHATS {
-			_, err := b.SendMessage(*ctx, &bot.SendMessageParams{
+			_, err := notificationsBot.SendMessage(ctx, &bot.SendMessageParams{
 				ChatID: chatId,
 				Text:   message,
 			})
@@ -234,7 +355,10 @@ var r = e.content
 // err = page.AddInitScript(initScript)
 // log.Fatalln(err)
 
-func login(b *bot.Bot, botCtx context.Context) (chan bool, func() error) {
+const LOGIN = "aringai09@gmail.com" // 'Nast-ka.666@mail.ru
+const PASS = "7fJxtyFQsamsung!"     //fyrgonSk-Doo2023
+
+func login(b *bot.Bot) (chan bool, func() error) {
 	url := "https://www.fl.ru/account/login/"
 	chromeproxy.PrepareProxy(":9223", ":9221", chromedp.DisableGPU)
 
@@ -247,16 +371,16 @@ func login(b *bot.Bot, botCtx context.Context) (chan bool, func() error) {
 	ctx := chromeproxy.GetTarget(targetId)
 
 	isSucceed := make(chan bool, 1)
-	isCsrfToken := make(chan bool ,1)
-	isCookies := make(chan bool ,1)
+	isCsrfToken := make(chan bool, 1)
+	isCookies := make(chan bool, 1)
 
 	go func() {
 		err = chromedp.Run(ctx, chromedp.Tasks{
 			chromedp.WaitReady("window"),
 			chromedp.WaitVisible("input[name='username']", chromedp.NodeVisible),
 			chromedp.WaitVisible("input[name='password']", chromedp.NodeVisible),
-			chromedp.Evaluate("(() => { const username = document.querySelector(`input[name='username']`); username.value = 'Nast-ka.666@mail.ru' })()", nil),
-			chromedp.Evaluate("(() => { const username = document.querySelector(`input[name='password']`); username.value = 'fyrgonSk-Doo2023' })()", nil),
+			chromedp.Evaluate("(() => { const username = document.querySelector(`input[name='username']`); username.value = '"+LOGIN+"' })()", nil),
+			chromedp.Evaluate("(() => { const username = document.querySelector(`input[name='password']`); username.value = '"+PASS+"' })()", nil),
 			chromedp.ActionFunc(func(ctx context.Context) error {
 				fmt.Println("Login info entered")
 				return nil
@@ -275,10 +399,10 @@ func login(b *bot.Bot, botCtx context.Context) (chan bool, func() error) {
 			chromedp.ActionFunc(func(ctx context.Context) error {
 				fmt.Println("Captcha clicked ", string(result), len(result))
 				msg := "Login here: http://" + ip + ":9221/?id=" + string(targetId)
-				// b.SendMessage(botCtx, &bot.SendMessageParams{
-				// 	ChatID: CHATS[0],
-				// 	Text:   string(msg),
-				// })
+				b.SendMessage(ctx, &bot.SendMessageParams{
+					ChatID: CHATS[0],
+					Text:   string(msg),
+				})
 				fmt.Println(msg)
 				return nil
 			}),
@@ -330,13 +454,19 @@ func login(b *bot.Bot, botCtx context.Context) (chan bool, func() error) {
 			}),
 			chromedp.Evaluate("document.cookie", &result),
 			chromedp.ActionFunc(func(ctx context.Context) error {
-				fmt.Println("cookies", string(result))
-				if len(result) > 0 {
-					cookies = string(result)
-					isCookies <- true
-				} else {
-					isCookies <- false
+				fmt.Println("Getting cookies")
+				c, err := network.GetCookies().Do(ctx)
+				if err != nil {
+					fmt.Println("Error cookies: ", err)
+					return err
 				}
+				cookies = ""
+				for i, cookie := range c {
+					log.Printf("chrome cookie %d: %+v", i, cookie.Name)
+					cookies += cookie.Name + "=" + cookie.Value + ";"
+				}
+				isCookies <- true
+
 				return nil
 			}),
 		})

@@ -1,4 +1,4 @@
-package main
+package bots
 
 import (
 	"context"
@@ -9,37 +9,31 @@ import (
 	"github.com/go-telegram/bot/models"
 )
 
-var token string = "6721949149:AAG7WYIY6PmJCmpJY5eA3Il12tQQNw1jjfE"
+func StartNotificationsBot() (*bot.Bot, error) {
+	var token string = "6721949149:AAG7WYIY6PmJCmpJY5eA3Il12tQQNw1jjfE"
 
-var b *bot.Bot
-
-func startBot(opts []bot.Option) {
-	if opts == nil {
-		opts = []bot.Option{}
-	}
-
-	options := append([]bot.Option{
+	options := []bot.Option{
 		bot.WithDefaultHandler(handleBotMessage),
-	})
+	}
 
 	// token, _ := os.LookupEnv("TG_TOKEN")
 	// if !exists || len([]rune(token)) == 0 {
 	// 	log.Fatalln("No TG token provided!")
 	// }
 
-	bt, err := bot.New(token, options...)
+	b, err := bot.New(token, options...)
 	if err != nil {
-		panic("Error while starting tg bot! \n" + err.Error())
+		fmt.Println("Error initing bot ", err)
+		return nil, err
 	}
 
-	bt.Start(ctx)
-
 	log.Println("Tg bot inited successfully")
+	return b, nil
 }
 
 func handleBotMessage(c context.Context, b *bot.Bot, update *models.Update) {
 	fmt.Println(update.Message.Chat.ID)
-	b.SendMessage(ctx, &bot.SendMessageParams{
+	b.SendMessage(c, &bot.SendMessageParams{
 		ChatID: update.Message.Chat.ID,
 		Text:   update.Message.Text,
 	})
