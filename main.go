@@ -27,6 +27,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strings"
 	"sync"
 
 	"fl.ru/chromeproxy"
@@ -73,25 +74,30 @@ func main() {
 	WATCH_CATEGORIES = []string{}
 	// WATCH_CATEGORIES = []string{"1", "2", "4", "5", "6", "7", "8", "9", "11", "3", "10", "17", "19"}
 
-	// now := time.Now()
-	// initialCheckDate := now.Add(time.Duration(-30) * time.Second)
+	now := time.Now()
+	initialCheckDate := now.Add(time.Duration(-30) * time.Second)
 
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer cancel()
 
-	startBot(nil)
+	// startBot(nil)
 
 	wg := &sync.WaitGroup{}
 
-	token, _, cancelChrome := login(b, ctx)
+	isSucceed, cancelChrome := login(b, ctx)
 	defer cancelChrome()
 
-	go getChatMessages(token)
+	isSuc := <-isSucceed
+	if isSuc {
+		getChatMessages()
+	} else {
+		log.Fatal("login failed")
+	}
 
-	// for _, category := range WATCH_CATEGORIES {
-	// 	wg.Add(1)
-	// 	go watchCategory(wg, b, ctx, category, initialCheckDate)
-	// }
+	for _, category := range WATCH_CATEGORIES {
+		wg.Add(1)
+		go watchCategory(wg, b, ctx, category, initialCheckDate)
+	}
 
 	wg.Wait()
 
@@ -104,15 +110,16 @@ func main() {
 	}
 }
 
-func getChatMessages(token string) {
+func getChatMessages() {
 	req, err := http.NewRequest("GET", "https://www.fl.ru/projects/offers/?limit=20&dialogues=1&deleted=1&sort=lastMessage&offset=0", nil)
 	if err != nil {
 		fmt.Println("Error getting chats", err)
 	}
 
-	req.Header.Set("x-csrf-token", csrfToken)
-	req.Header.Set("x-xsrf-token", csrfToken)
-	req.Header.Set("Cookie", cookies)
+	fmt.Println("Getting chats with params \n" + strings.Trim(csrfToken, "\"") + "\n" + strings.Trim(cookies, "\""))
+	req.Header.Set("x-csrf-token", strings.Trim(csrfToken, "\""))
+	req.Header.Set("x-xsrf-token", strings.Trim(csrfToken, "\""))
+	req.Header.Set("Cookie", strings.Trim(cookies, "\""))
 
 	res, err := http.DefaultClient.Do(req)
 
@@ -127,7 +134,7 @@ func getChatMessages(token string) {
 	}
 	defer res.Body.Close()
 
-	fmt.Println("Response: ", string(body))
+	fmt.Println("Response: ", len(string(body)))
 }
 
 func watchCategory(wg *sync.WaitGroup, b *bot.Bot, ctx context.Context, category string, initialCheckDate time.Time) {
@@ -227,7 +234,7 @@ var r = e.content
 // err = page.AddInitScript(initScript)
 // log.Fatalln(err)
 
-func login(b *bot.Bot, botCtx context.Context) (string, chan bool, func() error) {
+func login(b *bot.Bot, botCtx context.Context) (chan bool, func() error) {
 	url := "https://www.fl.ru/account/login/"
 	chromeproxy.PrepareProxy(":9223", ":9221", chromedp.DisableGPU)
 
@@ -240,24 +247,16 @@ func login(b *bot.Bot, botCtx context.Context) (string, chan bool, func() error)
 	ctx := chromeproxy.GetTarget(targetId)
 
 	isSucceed := make(chan bool, 1)
-
-	token := "jdd5q2MM27OsfXv8PQhz32FTNUrMXvgrizUYJl4S"
-	if len(token) > 0 {
-		isSucceed <- true
-		return token, isSucceed, func() error {
-			return nil
-		}
-	}
+	isCsrfToken := make(chan bool ,1)
+	isCookies := make(chan bool ,1)
 
 	go func() {
 		err = chromedp.Run(ctx, chromedp.Tasks{
 			chromedp.WaitReady("window"),
 			chromedp.WaitVisible("input[name='username']", chromedp.NodeVisible),
 			chromedp.WaitVisible("input[name='password']", chromedp.NodeVisible),
-
 			chromedp.Evaluate("(() => { const username = document.querySelector(`input[name='username']`); username.value = 'Nast-ka.666@mail.ru' })()", nil),
 			chromedp.Evaluate("(() => { const username = document.querySelector(`input[name='password']`); username.value = 'fyrgonSk-Doo2023' })()", nil),
-			// chromedp.Evaluate("() => (window.csrf_token && !document.querySelector(`[data-id='qa-head-sign-in']`)) || '1234123'", nil),
 			chromedp.ActionFunc(func(ctx context.Context) error {
 				fmt.Println("Login info entered")
 				return nil
@@ -275,12 +274,12 @@ func login(b *bot.Bot, botCtx context.Context) (string, chan bool, func() error)
 			chromedp.WaitReady("window"),
 			chromedp.ActionFunc(func(ctx context.Context) error {
 				fmt.Println("Captcha clicked ", string(result), len(result))
-				// msg := "Login here: http://" + ip + ":9221/?id=" + string(targetId)
+				msg := "Login here: http://" + ip + ":9221/?id=" + string(targetId)
 				// b.SendMessage(botCtx, &bot.SendMessageParams{
 				// 	ChatID: CHATS[0],
 				// 	Text:   string(msg),
 				// })
-				fmt.Println("Login here: http://" + ip + ":9221/?id=" + string(targetId))
+				fmt.Println(msg)
 				return nil
 			}),
 		})
@@ -298,50 +297,24 @@ func login(b *bot.Bot, botCtx context.Context) (string, chan bool, func() error)
 			chromedp.WaitReady("window"),
 			chromedp.WaitVisible("#navbarRightDropdown"),
 			chromedp.ActionFunc(func(ctx context.Context) error {
-				select {
-				case <-time.Tick((time.Second * 2)):
-					return nil
-				}
-			}),
-			chromedp.Evaluate("window.csrf_token", &result),
-			chromedp.ActionFunc(func(ctx context.Context) error {
-				fmt.Println("result token", string(result))
-				if len(result) > 0 {
-					isSucceed <- true
-				}
+				<-time.Tick((time.Second * 2))
 				return nil
-			}),
-		})
-
-		if err != nil && !errors.Is(err, context.Canceled) {
-			isSucceed <- false
-			log.Println("Error waiting for auth token: ", err)
-		}
-	}()
-
-	go func() {
-		var result []byte
-		err := chromedp.Run(ctx, chromedp.Tasks{
-			chromedp.WaitReady("window"),
-			chromedp.WaitVisible("#navbarRightDropdown"),
-			chromedp.ActionFunc(func(ctx context.Context) error {
-				select {
-				case <-time.Tick((time.Second * 2)):
-					return nil
-				}
 			}),
 			chromedp.Evaluate("document.querySelector(`meta[name='csrf-token']`).content", &result),
 			chromedp.ActionFunc(func(ctx context.Context) error {
 				fmt.Println("csrf token", string(result))
 				if len(result) > 0 {
 					csrfToken = string(result)
+					isCsrfToken <- true
+				} else {
+					isCsrfToken <- false
 				}
 				return nil
 			}),
 		})
 
 		if err != nil && !errors.Is(err, context.Canceled) {
-			isSucceed <- false
+			isCsrfToken <- false
 			log.Println("Error waiting for auth token: ", err)
 		}
 	}()
@@ -352,23 +325,24 @@ func login(b *bot.Bot, botCtx context.Context) (string, chan bool, func() error)
 			chromedp.WaitReady("window"),
 			chromedp.WaitVisible("#navbarRightDropdown"),
 			chromedp.ActionFunc(func(ctx context.Context) error {
-				select {
-				case <-time.Tick((time.Second * 2)):
-					return nil
-				}
+				<-time.Tick((time.Second * 2))
+				return nil
 			}),
 			chromedp.Evaluate("document.cookie", &result),
 			chromedp.ActionFunc(func(ctx context.Context) error {
 				fmt.Println("cookies", string(result))
 				if len(result) > 0 {
 					cookies = string(result)
+					isCookies <- true
+				} else {
+					isCookies <- false
 				}
 				return nil
 			}),
 		})
 
 		if err != nil && !errors.Is(err, context.Canceled) {
-			isSucceed <- false
+			isCookies <- false
 			log.Println("Error waiting for auth token: ", err)
 		}
 	}()
@@ -379,7 +353,6 @@ func login(b *bot.Bot, botCtx context.Context) (string, chan bool, func() error)
 			chromedp.Click("#submit-button", chromedp.NodeNotVisible),
 			chromedp.ActionFunc(func(ctx context.Context) error {
 				log.Print("Captcha solved!")
-				isSucceed <- true
 				return nil
 			}),
 		})
@@ -389,7 +362,9 @@ func login(b *bot.Bot, botCtx context.Context) (string, chan bool, func() error)
 		}
 	}()
 
-	return token, isSucceed, func() error {
+	isSucceed <- <-isCsrfToken && <-isCookies
+
+	return isSucceed, func() error {
 		err := chromeproxy.CloseTarget(targetId)
 		return err
 	}
