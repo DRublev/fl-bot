@@ -273,11 +273,6 @@ func login(b *bot.Bot, botCtx context.Context) (string, chan bool, func() error)
 		var result []byte
 		err = chromedp.Run(ctx, chromedp.Tasks{
 			chromedp.WaitReady("window"),
-			// chromedp.Evaluate("document.querySelector('iframe #recaptchsa-anchor').click()", &result),
-
-			// chromedp.WaitVisible(".recaptcha-checkbox-border"),
-			// chromedp.Click(".recaptcha-checkbox-border"),
-			// chromedp.Evaluate("() => (window.csrf_token && !document.querySelector(`[data-id='qa-head-sign-in']`)) || '1234123'", nil),
 			chromedp.ActionFunc(func(ctx context.Context) error {
 				fmt.Println("Captcha clicked ", string(result), len(result))
 				// msg := "Login here: http://" + ip + ":9221/?id=" + string(targetId)
@@ -298,7 +293,6 @@ func login(b *bot.Bot, botCtx context.Context) (string, chan bool, func() error)
 	}()
 
 	go func() {
-		// isTokenFoundC := make(chan bool, 1)
 		var result []byte
 		err := chromedp.Run(ctx, chromedp.Tasks{
 			chromedp.WaitReady("window"),
