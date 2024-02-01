@@ -60,7 +60,7 @@ a.ui-button._responsive._primary _md - кнопка отклика с про
 .py-32.text-right.unmobile.flex-shrink-0.ml-auto.mobile - бюджет и дедлайн
 */
 
-var CHATS []string
+var CHATS map[string]string
 var WATCH_CATEGORIES []string
 
 var ctx context.Context
@@ -79,8 +79,11 @@ var isOfferChatBotReady chan bool = make(chan bool, 1)
 // Писать последнию дату синхронизации в файл для каждого подписчика
 
 func main() {
+
 	// CHATS = []string{"972086219", "713587013"}
-	CHATS = []string{"713587013"}
+	CHATS = map[string]string{
+		"713587013": "aringai09",
+	}
 	// WATCH_CATEGORIES = []string{"3", "10", "17", "19"}
 	WATCH_CATEGORIES = []string{}
 	// WATCH_CATEGORIES = []string{"1", "2", "4", "5", "6", "7", "8", "9", "11", "3", "10", "17", "19"}
@@ -149,28 +152,73 @@ func main() {
 	}
 }
 
+type User struct {
+	Id       int    `json:"id"`
+	Email    string `json:"email"`
+	Username string `json:"username"`
+}
+
 type OfferResponseItem struct {
-	Id          int    `json:id`
-	OrderUrl    string `json:order_url`
-	Title       string `json:title`
-	Description string `json:description`
-	ProjectId   int    `json:project_id`
+	Id          int    `json:"id"`
+	OrderUrl    string `json:"order_url"`
+	Title       string `json:"title"`
+	Description string `json:"description"`
+	ProjectId   int    `json:"project_id"`
+	Url         string `json:"url"`
+	Author      User   `json:"author"`
+}
+
+type OfferMessageItem struct {
+	Id          int    `json:"id"`
+	FromId      int    `json:"from_id"`
+	Text        string `json:"text"`
+	Format      string `json:"format"`
+	OfferId     int    `json:"offer_id"`
+	ProjectId   int    `json:"project_id"`
+	IsReadByMe  bool   `json:"is_frl_read"`
+	IsReadByEmp bool   `json:"is_emp_read"`
+}
+
+type OfferProjectItem struct {
+	Id        int    `json:"id"`
+	Author    User   `json:"author"`
+	Name      string `json:"name"`
+	Url       string `json:"url"`
+	IsTrashed bool   `json:"in_trash"`
 }
 
 type OffersResponse struct {
 	LastOfferTime int  `json:"last_offer_time"`
 	HasNextPage   bool `json:"has_next_page"`
 	// Отклики
-	Items [](map[string]any) `json:"items"`
+	Items []OfferResponseItem `json:"items"`
 	// Все сообщения
-	Messages [](map[string]any) `json:"messages"`
+	Messages []OfferMessageItem `json:"messages"`
 	// Список проектов == список чатов
-	Projects [](map[string]any) `json:"projects"`
+	Projects []OfferProjectItem `json:"projects"`
 }
 
 // Мапа с проектами и месседжами
 // Нужно сматчить чаты в телеге с айдишниками авторов ?? - при /start просить логин из fl и запоминать
 // Нужно хранить все в файлах
+
+type Project struct {
+	Id     int
+	Name   string
+	Author string
+	Url    string
+}
+
+type Message struct {
+	Project     Project
+	Id          int
+	FromId      int
+	Text        string
+	Format      string
+	OfferId     int
+	IsReadByMe  bool
+	IsReadByEmp bool
+}
 
 func getChatMessages(c *context.Context, wg *sync.WaitGroup, b *bot.Bot) {
 	defer wg.Done()
@@ -207,28 +255,97 @@ func getChatMessages(c *context.Context, wg *sync.WaitGroup, b *bot.Bot) {
 		fmt.Println("Cannot unmarshal ", err)
 	}
 
-	// fmt.Println("Response: ", result.Items[0])
-	if <-isOfferChatBotReady {
+	notReadMessages := make(map[string][]Message)
+
+	chatsByLogin := make(map[string]string)
+	for chatId, login := range CHATS {
+		chatsByLogin[login] = chatId
+	}
+
+	authorIdChatMap := make(map[int]string)
+	for _, item := range result.Items {
+		chatId, ok := chatsByLogin[item.Author.Username]
+		if ok {
+			authorIdChatMap[item.Author.Id] = chatId
+		}
+	}
+
+	projectsMap := make(map[int]Project)
+	fmt.Println("Projects: ", len(result.Messages))
+	for _, project := range result.Projects {
+		if project.IsTrashed {
+			fmt.Println("Trashed project")
+			continue
+		}
+
+		projectsMap[project.Id] = Project{
+			Id:     project.Id,
+			Author: project.Author.Username,
+			Name:   project.Name,
+			Url:    project.Url,
+		}
+	}
+
+	for _, message := range result.Messages {
+		_, ok := authorIdChatMap[message.FromId]
+		var chatId string
 		for _, item := range result.Items {
-			sendNewMessages(c, b, item)
+			if item.ProjectId != message.ProjectId {
+				continue
+			}
+			candidate, ok := authorIdChatMap[item.Author.Id]
+			if ok {
+				chatId = candidate
+			}
+		}
+		// if !ok && !message.IsReadByMe {
+		if !ok && len(chatId) > 0 {
+			project, ok := projectsMap[message.ProjectId]
+			if !ok {
+				fmt.Println("Unknown project ", message.ProjectId)
+			}
+			fmt.Println("New message! ", message)
+			if notReadMessages[chatId] == nil {
+				notReadMessages[chatId] = []Message{}
+			}
+			notReadMessages[chatId] = append(notReadMessages[chatId], Message{
+				Id:          message.Id,
+				FromId:      message.FromId,
+				Text:        message.Text,
+				Format:      message.Format,
+				OfferId:     message.OfferId,
+				IsReadByMe:  message.IsReadByMe,
+				IsReadByEmp: message.IsReadByEmp,
+				Project:     project,
+			})
+		} else {
+			fmt.Println(" Read or from me ", ok, message.IsReadByMe)
+		}
+	}
+
+	fmt.Println("Not read map ", len(notReadMessages))
+	if <-isOfferChatBotReady {
+		for chatId, messages := range notReadMessages {
+			fmt.Println("Sending message to chat ", chatId)
+			for _, message := range messages {
+				sendNewMessages(c, b, chatId, message)
+			}
 		}
 	}
 
 }
 
-func sendNewMessages(c *context.Context, b *bot.Bot, item map[string]any) {
-	for _, chatId := range CHATS {
-		orderUrl := item["order_url"].(string)
-		content := item["description"].(string)
-		message := "От: \n" + "По заказу " + orderUrl + "\n" + content
-		fmt.Println(b, chatId, "   ", message)
-		_, err := b.SendMessage(*c, &bot.SendMessageParams{
-			ChatID: chatId,
-			Text:   message,
-		})
-		if err != nil {
-			log.Println("Error sending message ", err)
-		}
+func sendNewMessages(c *context.Context, b *bot.Bot, chatId string, item Message) {
+	orderUrl := item.Project.Url
+	content := item.Text
+	message := "От: " + item.Project.Author + "\n" + "По заказу " + item.Project.Name + " (" + orderUrl + ")\n" + content
+	fmt.Println("Sending message: ", chatId, "   ", message)
+	_, err := b.SendMessage(*c, &bot.SendMessageParams{
+		ChatID: chatId,
+		Text:   message,
+	})
+	if err != nil {
+		log.Println("Error sending message ", err)
 	}
 }
 
@@ -286,7 +403,7 @@ func sendUpdates(items *[]rss.Item) {
 	for _, item := range *items {
 		message := formatUpdateMessage(&item)
 
-		for _, chatId := range CHATS {
+		for chatId := range CHATS {
 			_, err := notificationsBot.SendMessage(ctx, &bot.SendMessageParams{
 				ChatID: chatId,
 				Text:   message,
@@ -400,7 +517,7 @@ func login(b *bot.Bot) (chan bool, func() error) {
 				fmt.Println("Captcha clicked ", string(result), len(result))
 				msg := "Login here: http://" + ip + ":9221/?id=" + string(targetId)
 				b.SendMessage(ctx, &bot.SendMessageParams{
-					ChatID: CHATS[0],
+					ChatID: "713587013",
 					Text:   string(msg),
 				})
 				fmt.Println(msg)
