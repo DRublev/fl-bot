@@ -2,6 +2,7 @@ package bots
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 
@@ -9,9 +10,10 @@ import (
 	"github.com/go-telegram/bot/models"
 )
 
-func StartNotificationsBot() (*bot.Bot, error) {
-	var token string = "6721949149:AAG7WYIY6PmJCmpJY5eA3Il12tQQNw1jjfE"
-
+func StartNotificationsBot(token string) (*bot.Bot, error) {
+	if len(token) == 0 {
+		return nil, errors.New("must provide a token")
+	}
 	options := []bot.Option{
 		bot.WithDefaultHandler(handleBotMessage),
 	}

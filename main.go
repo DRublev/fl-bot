@@ -27,6 +27,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"main/offerMessagesNotifier"
 	"net/http"
 	"strings"
 	"sync"
@@ -43,6 +44,7 @@ import (
 	"github.com/SlyMarbo/rss"
 	"github.com/chromedp/cdproto/network"
 	"github.com/chromedp/chromedp"
+	"github.com/joho/godotenv"
 
 	"github.com/go-telegram/bot"
 )
@@ -50,7 +52,7 @@ import (
 // categories 3 10 17 19
 
 /*
-SELECTORS
+SELECTORS отклика на оффер
 project_info_5275913 - инфа с описанием и кнопкой отклика
 a.ui-button._responsive._primary _md - кнопка отклика с про
 #vacancy-offer button._primary - кнопка отклика, когда доступна
@@ -68,17 +70,21 @@ var ctx context.Context
 var csrfToken string = "\"4X7UcBStnbhXpWmqujzDO38csegsw7qK50cRq76I\""
 var cookies string = "\"uechat_3_pages_count=4;_ga_RD9LL0K106=GS1.1.1706716444.1.1.1706716484.0.0.0;pwd=ed02ae7a7ac284a3acb76c7abf1940b8;name=aringai09;_ga=GA1.2.1617029702.1706716445;uechat_3_mode=0;uechat_3_first_time=1706716445187;_ym_d=1706716445;_ym_uid=1706716445483799674;analytic_id=1706716447023416;_ym_visorc=w;PHPSESSID=k06LScKmXkhwwyaYaBKjFL9gR00YL4AFYQqUobJB;_gat=1;_gid=GA1.2.691180979.1706716445;uechat_3_disabled=true;id=8488671;XSRF-TOKEN=4X7UcBStnbhXpWmqujzDO38csegsw7qK50cRq76I;user_device_id=0fv59x3qw9thbxeh82v8hi5dw9ucyssm;_ym_isad=2;_ga_cid=1617029702.1706716445;__ddg1_=76ExwmPsn2gTwMmAA1PL;\""
 
-var notificationsBot *bot.Bot
-var isNotificationsBotReady chan bool = make(chan bool, 1)
-var offerChatsBot *bot.Bot
-var isOfferChatBotReady chan bool = make(chan bool, 1)
-
 // = "PHPSESSID=yzlIAzYjpr1wYVBb64ANQ4cy1VcADjt9GOpNsPOH;"+"\"XSRF-TOKEN=XI1rnYgonhbszJQjkMdQu6Wgn10HCdyuB1OQgWkX; _gid=GA1.2.1816440299.1706715424; _ga_cid=1405734.1706715424; _gat=1; _ym_uid=1706715424607799129; _ym_d=1706715424; _ym_isad=2; uechat_3_first_time=1706715424109; _ym_visorc=w; uechat_3_disabled=true; uechat_3_mode=0; analytic_id=1706715425730366; _ga_RD9LL0K106=GS1.1.1706715423.1.1.1706715474.0.0.0; _ga=GA1.2.1405734.1706715424; uechat_3_pages_count=4\""
 
 // Докинуть команду подписки
 // Писать последнию дату синхронизации в файл для каждого подписчика
 
+func restoreState() {
+	// db.restore()
+}
+
 func main() {
+
+	if err := godotenv.Load(); err != nil {
+		log.Fatalln("Cannot load env!")
+	}
+	// defer db.persist(state)
 
 	// CHATS = []string{"972086219", "713587013"}
 	CHATS = map[string]string{
@@ -86,59 +92,39 @@ func main() {
 	}
 	// WATCH_CATEGORIES = []string{"3", "10", "17", "19"}
 	WATCH_CATEGORIES = []string{}
-	// WATCH_CATEGORIES = []string{"1", "2", "4", "5", "6", "7", "8", "9", "11", "3", "10", "17", "19"}
 
-	now := time.Now()
-	initialCheckDate := now.Add(time.Duration(-30) * time.Second)
+	// now := time.Now()
+	// initialCheckDate := now.Add(time.Duration(-30) * time.Second)
 
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer cancel()
 
 	wg := &sync.WaitGroup{}
 
-	go func() {
-		notificationsBot, err := bots.StartNotificationsBot()
-		if err != nil {
-			isNotificationsBotReady <- false
-			log.Panicln("Error staring notifications bot ", err)
-		}
-		isNotificationsBotReady <- notificationsBot != nil
-		notificationsBot.Start(ctx)
-	}()
+	wg.Add(1)
+	go bots.StartBots(ctx, wg)
 
-	fmt.Println("Starting offerChatsBot")
-	offerChatsBot, err := bots.StartOfferChatsBot()
-	if err != nil {
-		isOfferChatBotReady <- false
-		log.Panicln("Error staring notifications bot ", err)
-	}
-	fmt.Println("offerChatsBot defined", offerChatsBot)
-
-	isOfferChatBotReady <- offerChatsBot != nil
-	go func() {
-		offerChatsBot.Start(ctx)
-		fmt.Println("offerChatsBot started")
-	}()
-
-	if <-isNotificationsBotReady {
-		for _, category := range WATCH_CATEGORIES {
-			wg.Add(1)
-			go watchCategory(wg, ctx, category, initialCheckDate)
-		}
+	if <-bots.IsNotificationsBotReady {
+		fmt.Println("Starting to watch ", bots.NotificationsBot)
+		offerMessagesNotifier.Start(ctx)
+		// for _, category := range WATCH_CATEGORIES {
+		// 	wg.Add(1)
+		// 	go watchCategory(wg, ctx, category, initialCheckDate)
+		// }
 	}
 
 	isSucceed := make(chan bool, 1)
 	if len(cookies) == 0 {
-		isOk, cancelChrome := login(notificationsBot)
-		isSucceed <- <-isOk
-		defer cancelChrome()
+		// isOk, cancelChrome := login(bots.NotificationsBot)
+		// isSucceed <- <-isOk
+		// defer cancelChrome()
 	} else {
 		isSucceed <- true
 	}
 
 	if <-isSucceed {
-		wg.Add(1)
-		go getChatMessages(&ctx, wg, offerChatsBot)
+		// wg.Add(1)
+		// go getChatMessages(&ctx, wg, bots.OfferChatsBot)
 	}
 
 	wg.Wait()
@@ -227,7 +213,7 @@ func getChatMessages(c *context.Context, wg *sync.WaitGroup, b *bot.Bot) {
 	if err != nil {
 		fmt.Println("Error getting chats", err)
 	}
-	fmt.Println("offerChatsBot", b)
+	fmt.Println("bots.OfferChatsBot", b)
 
 	fmt.Println("Getting chats with params \n" + strings.Trim(csrfToken, "\"") + "\n" + strings.Trim(cookies, "\""))
 	req.Header.Set("x-csrf-token", strings.Trim(csrfToken, "\""))
@@ -324,7 +310,7 @@ func getChatMessages(c *context.Context, wg *sync.WaitGroup, b *bot.Bot) {
 	}
 
 	fmt.Println("Not read map ", len(notReadMessages))
-	if <-isOfferChatBotReady {
+	if <-bots.IsOfferChatBotReady {
 		for chatId, messages := range notReadMessages {
 			fmt.Println("Sending message to chat ", chatId)
 			for _, message := range messages {
@@ -404,7 +390,7 @@ func sendUpdates(items *[]rss.Item) {
 		message := formatUpdateMessage(&item)
 
 		for chatId := range CHATS {
-			_, err := notificationsBot.SendMessage(ctx, &bot.SendMessageParams{
+			_, err := bots.NotificationsBot.SendMessage(ctx, &bot.SendMessageParams{
 				ChatID: chatId,
 				Text:   message,
 			})
@@ -426,12 +412,12 @@ func formatUpdateMessage(item *rss.Item) string {
 func getItemsForCategory(category *string, lastCheckDate *time.Time) []rss.Item {
 	if time.Now().Local().Hour() > 22 || time.Now().Local().Hour() < 8 {
 		*lastCheckDate = time.Now().Add(time.Duration(-30) * time.Second)
-
 		return []rss.Item{}
 	}
 	feed, err := rss.Fetch("https://www.fl.ru/rss/all.xml?category=" + *category)
 	if err != nil {
 		log.Default().Println("Error getting items for category ", *category, "\n", err, "\n\n")
+		return []rss.Item{}
 	}
 	mostRescent := getMostRescentItems(feed.Items, *lastCheckDate)
 	fmt.Println("items ", lastCheckDate.Local().String(), " ", feed.Items[0].Date.Local().String(), " ", feed.Items[0].Title, " ", len(feed.Items), " ", len(mostRescent))

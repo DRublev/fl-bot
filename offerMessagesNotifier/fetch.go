@@ -1,0 +1,6 @@
+package offerMessagesNotifier
+
+
+func fetchUpdates() {
+	
+}

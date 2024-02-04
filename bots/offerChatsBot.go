@@ -2,15 +2,17 @@ package bots
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
 )
 
-func StartOfferChatsBot() (*bot.Bot, error) {
-	var token = "6789001683:AAECQsN457a_kQ86DQNKKMOJJZZAzqJ7O4Q"
-
+func StartOfferChatsBot(token string) (*bot.Bot, error) {
+	if len(token) == 0 {
+		return nil, errors.New("must provide a token")
+	}
 	options := []bot.Option{
 		bot.WithDefaultHandler(defaultMessageHandler),
 	}
