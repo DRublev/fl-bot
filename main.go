@@ -4,9 +4,6 @@
 // заполинть шаблон
 // откликнуться на заказ
 
-// go parse rss https://github.com/mmcdole/gofeed
-// go http - https://pkg.go.dev/net/http
-
 // Проект по откликам на fl https://github.com/valentinkh1/fl.ru.am/blob/master/src/common/js/background.js
 
 // recaptcha solver - https://github.com/JacobLinCool/recaptcha-solver
@@ -21,7 +18,6 @@
 package main
 
 import (
-	"bufio"
 	"context"
 	"encoding/json"
 	"errors"
@@ -107,10 +103,6 @@ func main() {
 	if <-bots.IsNotificationsBotReady {
 		fmt.Println("Starting to watch ", bots.NotificationsBot)
 		offerMessagesNotifier.Start(ctx)
-		// for _, category := range WATCH_CATEGORIES {
-		// 	wg.Add(1)
-		// 	go watchCategory(wg, ctx, category, initialCheckDate)
-		// }
 	}
 
 	isSucceed := make(chan bool, 1)
@@ -128,14 +120,6 @@ func main() {
 	}
 
 	wg.Wait()
-
-	input := bufio.NewScanner(os.Stdin)
-	var kw string
-	input.Scan()
-	kw = input.Text()
-	if kw == "e" {
-		return
-	}
 }
 
 type User struct {

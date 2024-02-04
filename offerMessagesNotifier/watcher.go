@@ -70,14 +70,14 @@ func Start(ctx context.Context) {
 		wg := &sync.WaitGroup{}
 		for chatId, categories := range chatCategories {
 			wg.Add(1)
-			go watchCategories(wg, ctx, chatId, categories)
+			go watchCategories(ctx, wg, chatId, categories)
 		}
 		wg.Wait()
 	}
 
 }
 
-var BASE_CHECK_HISTORY_STORAGE_PATH []string = []string{"checks"}
+var baseCheckHistoryStoragePath []string = []string{"checks"}
 
 type Check []time.Time
 type CheckChannelItem struct {
@@ -85,51 +85,73 @@ type CheckChannelItem struct {
 	Time     time.Time
 }
 
-func watchCategories(wg *sync.WaitGroup, ctx context.Context, chatId string, categories []string) {
+func watchCategories(ctx context.Context, wg *sync.WaitGroup, chatID string, categories []string) {
 	defer wg.Done()
-	fmt.Println("Watching categories for", chatId, categories)
-	chatStoragePath := append(BASE_CHECK_HISTORY_STORAGE_PATH, chatId)
+	fmt.Println("Watching categories for", chatID, categories)
+	chatStoragePath := append(baseCheckHistoryStoragePath, chatID)
 	checks := make(chan CheckChannelItem)
 	defer close(checks)
 
-	w := &sync.WaitGroup{}
+	select {
+	case <-ctx.Done():
+		return
+	default:
+		w := &sync.WaitGroup{}
 
-	w.Add(1)
-	go func() {
-		for {
-			check, ok := <-checks
-			if !ok {
-				break
+		w.Add(1)
+		go func() {
+			defer w.Done()
+			select {
+			case <-ctx.Done():
+				return
+			case check, ok := <-checks:
+				if !ok {
+					fmt.Println("Check channel closed")
+					return
+				}
+				fmt.Println("DB write check ", check)
+				dbPath := append(chatStoragePath, check.Category)
+				dbInstance.Append(dbPath, []byte(check.Time.String()))
+
 			}
-			dbPath := append(chatStoragePath, check.Category)
-			dbInstance.Append(dbPath, []byte(check.Time.String()))
+		}()
+
+		for _, category := range categories {
+			log.Default().Println("Start watching category", category, chatID)
+			notViewedItems := make(chan rss.Item)
+			defer close(notViewedItems)
+
+			w.Add(1)
+			go watch(ctx, w, chatID, category, &checks, &notViewedItems)
+
+			w.Add(1)
+			go sendUpdates(ctx, w, chatID, &notViewedItems)
 		}
-	}()
-
-	for _, category := range categories {
-		log.Default().Println("Start watching category %v for %v", category, chatId)
-		notViewedItems := make(chan rss.Item)
-
-		w.Add(1)
-		go watch(w, chatId, category, &checks, &notViewedItems)
-
-		w.Add(1)
-		go sendUpdates(w, ctx, chatId, &notViewedItems)
+		w.Wait()
 	}
-	w.Wait()
+
 }
 
-func watch(wg *sync.WaitGroup, chatId string, category string, checks *chan CheckChannelItem, notViewedItems *chan rss.Item) {
+func watch(ctx context.Context, wg *sync.WaitGroup, chatID string, category string, checks *chan CheckChannelItem, notViewedItems *chan rss.Item) {
 	defer wg.Done()
 
-	lastCheck := getLastCheck(&chatId, &category)
+	lastCheck := getLastCheck(&chatID, &category)
 
 	ticker := time.NewTicker(time.Duration(CHECK_PERIOD_SEC) * time.Second)
+	defer ticker.Stop()
 
-	for range ticker.C {
+	select {
+	case <-ctx.Done():
+		return
+	case <-ticker.C:
 		fmt.Println("Tick ", category)
 		getNewItemsForCategory(&category, &lastCheck, notViewedItems)
-		*checks <- CheckChannelItem{Time: lastCheck, Category: category}
+		select {
+			case *checks <- CheckChannelItem{Time: lastCheck, Category: category}:
+				fmt.Println("Check ", lastCheck, category)
+			default:
+				return
+		}
 	}
 }
 
@@ -137,7 +159,7 @@ func getNewItemsForCategory(category *string, lastCheckDate *time.Time, notViewe
 	items, err := flApi.GetOffersInCategoty(*category)
 
 	if err != nil {
-		log.Default().Println("Error getting items for category ", *category, "\n", err, "\n\n")
+		log.Default().Println("Error getting items for category ", *category, "\n", err)
 		getNewItemsForCategory(category, lastCheckDate, notViewedItems)
 	}
 
@@ -150,23 +172,22 @@ func getNewItemsForCategory(category *string, lastCheckDate *time.Time, notViewe
 	}
 }
 
-func getLastCheck(chatId *string, category *string) time.Time {
+func getLastCheck(chatID *string, category *string) time.Time {
 	// get from db or return now
-	return time.Now().Add(time.Duration(-5) * time.Second)
+	return time.Now().Add(time.Duration(-60) * time.Minute)
 }
 
-func sendUpdates(wg *sync.WaitGroup, ctx context.Context, chatId string, items *chan rss.Item) {
+func sendUpdates(ctx context.Context, wg *sync.WaitGroup, chatID string, items *chan rss.Item) {
 	defer wg.Done()
 
 	select {
-	// case <-ctx.Done():
-	// 	fmt.Println("Ctx done 127")
-	// 	return
+	case <-ctx.Done():
+		return
 	case item, ok := <-*items:
 		if ok {
 			message := "[" + item.Date.Local().Format("15:04:05 02.01.2006") + "] " + item.Title + "\n" + item.Content + "\n" + item.Link + "\n"
 			_, err := bots.NotificationsBot.SendMessage(ctx, &bot.SendMessageParams{
-				ChatID: "713587013",
+				ChatID: chatID,
 				Text:   message,
 			})
 			if err != nil {
@@ -174,6 +195,7 @@ func sendUpdates(wg *sync.WaitGroup, ctx context.Context, chatId string, items *
 			}
 		} else {
 			log.Default().Panicln("Cannot read from channel")
+			return
 		}
 	}
 }
