@@ -2,6 +2,7 @@ package db
 
 import (
 	"errors"
+	"fmt"
 	"log"
 	"os"
 	"path"
@@ -19,7 +20,7 @@ func (d *DB) getStoragePath(storageName []string) (string, error) {
 	dir := path.Join(path.Dir(base))
 	rootDir := filepath.Dir(dir)
 
-	paths := append([]string{rootDir, "db"}, storageName...)
+	paths := append([]string{rootDir, "storage"}, storageName...)
 	p := path.Join(paths...)
 	return p, nil
 }
@@ -30,13 +31,20 @@ func (d *DB) Persist(storageName []string, content []byte) error {
 
 func (d *DB) Append(storageName []string, content []byte) error {
 	storageFile, err := d.getStoragePath(storageName)
-	if err!= nil {
+	fmt.Println("Appending to ", storageFile)
+	if err != nil {
 		log.Default().Println("Failed to get storage path: ", err)
 		return err
 	}
 
-	file, err := os.OpenFile(storageFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	if err!= nil {
+	if _, err := os.Stat(storageFile); os.IsNotExist(err) {
+		dir, _ := d.getStoragePath(storageName[:len(storageName)-1])
+		os.MkdirAll(dir, 0700)
+	}
+
+	file, err := os.OpenFile(storageFile, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0660)
+	if err != nil {
+		log.Default().Println("Failed to open file: ", err)
 		return err
 	}
 	defer file.Close()

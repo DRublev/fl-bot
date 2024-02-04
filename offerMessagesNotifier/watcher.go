@@ -109,8 +109,7 @@ func watchCategories(ctx context.Context, wg *sync.WaitGroup, chatID string, cat
 					fmt.Println("Check channel closed")
 					return
 				}
-				fmt.Println("DB write check ", check)
-				dbPath := append(chatStoragePath, check.Category)
+				dbPath := append(chatStoragePath, check.Category + ".txt",)
 				dbInstance.Append(dbPath, []byte(check.Time.String()))
 
 			}
