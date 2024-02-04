@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"fl.ru/bots"
+	"main/bots"
 	"github.com/SlyMarbo/rss"
 	"github.com/go-telegram/bot"
 )

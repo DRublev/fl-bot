@@ -28,8 +28,8 @@ import (
 	"strings"
 	"sync"
 
-	"fl.ru/bots"
-	"fl.ru/chromeproxy"
+	"main/bots"
+	"main/chrome-proxy"
 
 	"os"
 
