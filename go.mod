@@ -1,6 +1,6 @@
 module main
 
-go 1.21.6
+go 1.21
 
 require github.com/SlyMarbo/rss v1.0.5
 
