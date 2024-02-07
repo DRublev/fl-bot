@@ -25,4 +25,4 @@ jobs:
           TG_NOTIFICATIONS: ${{ vars.TG_NOTIFICATIONS_BOT_TOKEN  }}
           TG_OFFERS: ${{ vars.TG_OFFER_CHATS_BOT_TOKEN }}
         run: |
-          expect -c 'spawn echo "password:"; expect "password:"; send "$env(REGPWD)\r";' && echo 'OK'
+          expect -c 'spawn ssh -o "StrictHostKeyChecking=no" root@$env(IP) "export TG_NOTIFICATIONS_BOT_TOKEN=$env(TG_NOTIFICATIONS) && export TG_OFFER_CHATS_BOT_TOKEN=$env(TG_OFFERS) && ~/deploy.sh"; expect "password:"; send "$env(REGPWD)\r";' && echo 'OK'
