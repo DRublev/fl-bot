@@ -14,9 +14,8 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - name: Deploy
-    - shell: bash
-      env:
-        IP: ${{ secrets.REGRUIP }}
-        PWD: ${{ secrets.REGRUP }}
-      run: echo $PWD | ssh root@$IP "./deploy.sh"
+      - shell: bash
+        env:
+          IP: ${{ secrets.REGRUIP }}
+          PWD: ${{ secrets.REGRUP }}
+        run: echo $PWD | ssh root@$IP "./deploy.sh"
