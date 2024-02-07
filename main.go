@@ -104,7 +104,7 @@ func main() {
 
 	if <-bots.IsNotificationsBotReady {
 		fmt.Println("Starting to watch ", bots.NotificationsBot)
-		// offerMessagesNotifier.Start(ctx)
+		offerMessagesNotifier.Start(ctx)
 	}
 
 	isSucceed := make(chan bool, 1)
