@@ -25,4 +25,4 @@ jobs:
           TG_NOTIFICATIONS: ${{ vars.TG_NOTIFICATIONS_BOT_TOKEN  }}
           TG_OFFERS: ${{ vars.TG_OFFER_CHATS_BOT_TOKEN }}
         run: |
-          expect -c 'spawn echo "password:"; expect "password:"; send "$env(REGPWD)\r";'
+          expect -c 'spawn echo "password:"; expect "password:"; send "$env(REGPWD)\r";' && echo 'OK'
