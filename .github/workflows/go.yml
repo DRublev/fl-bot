@@ -16,10 +16,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - shell: bash
+        run: apt install expect 
+      - shell: bash
         env:
           IP: ${{ secrets.REGRUIP }}
           REGPWD: ${{ secrets.REGRUP }}
           TG_NOTIFICATIONS: ${{ vars.TG_NOTIFICATIONS_BOT_TOKEN  }}
           TG_OFFERS: ${{ vars.TG_OFFER_CHATS_BOT_TOKEN }}
         run: |
-          spawn ssh root@$IP "export TG_NOTIFICATIONS_BOT_TOKEN=$TG_NOTIFICATIONS && export TG_OFFER_CHATS_BOT_TOKEN=$TG_OFFERS && ./deploy.sh" && expect "root@" && send -- "$REGPWD\r" && interact
+          expect -c 'spawn ssh root@$IP "export TG_NOTIFICATIONS_BOT_TOKEN=$TG_NOTIFICATIONS && export TG_OFFER_CHATS_BOT_TOKEN=$TG_OFFERS && ./deploy.sh"; expect "password: "; send "$REGPWD\r"; interact'
