@@ -18,4 +18,4 @@ jobs:
         env:
           IP: ${{ secrets.REGRUIP }}
           PWD: ${{ secrets.REGRUP }}
-        run: echo $PWD | ssh -oStrictHostKeyChecking=no -v root@$IP "./deploy.sh"
+        run: echo $PWD | ssh -o "StrictHostKeyChecking=no" -o "PasswordAuthentication=yes" -v root@$IP "./deploy.sh"
