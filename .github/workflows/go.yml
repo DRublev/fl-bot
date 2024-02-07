@@ -18,4 +18,4 @@ jobs:
         env:
           IP: ${{ secrets.REGRUIP }}
           PWD: ${{ secrets.REGRUP }}
-        run: echo $PWD | ssh root@$IP
+        run: echo $PWD | ssh -tt root@$IP
