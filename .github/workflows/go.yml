@@ -20,4 +20,5 @@ jobs:
           REGPWD: ${{ secrets.REGRUP }}
           TG_NOTIFICATIONS: ${{ vars.TG_NOTIFICATIONS_BOT_TOKEN  }}
           TG_OFFERS: ${{ vars.TG_OFFER_CHATS_BOT_TOKEN }}
-        run: cat $REGPWD | ssh -o "StrictHostKeyChecking=no" -o "PasswordAuthentication=yes" -v root@$IP "export TG_NOTIFICATIONS_BOT_TOKEN=$TG_NOTIFICATIONS && export TG_OFFER_CHATS_BOT_TOKEN=$TG_OFFERS && ./deploy.sh"
+        run: |
+          cat $REGPWD > ssh -o "StrictHostKeyChecking=no" -o "PasswordAuthentication=yes" -v root@$IP "export TG_NOTIFICATIONS_BOT_TOKEN=$TG_NOTIFICATIONS && export TG_OFFER_CHATS_BOT_TOKEN=$TG_OFFERS && ./deploy.sh"
