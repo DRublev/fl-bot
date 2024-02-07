@@ -11,6 +11,7 @@ on:
 
 jobs:
 
+          # printf $REGPWD | ssh -o 'StrictHostKeyChecking=no' -tt root@$IP "export TG_NOTIFICATIONS_BOT_TOKEN=$TG_NOTIFICATIONS && export TG_OFFER_CHATS_BOT_TOKEN=$TG_OFFERS && ./deploy.sh"
   build:
     runs-on: ubuntu-latest
     steps:
@@ -21,4 +22,4 @@ jobs:
           TG_NOTIFICATIONS: ${{ vars.TG_NOTIFICATIONS_BOT_TOKEN  }}
           TG_OFFERS: ${{ vars.TG_OFFER_CHATS_BOT_TOKEN }}
         run: |
-          printf $REGPWD | ssh -o 'StrictHostKeyChecking=no' -tt root@$IP "export TG_NOTIFICATIONS_BOT_TOKEN=$TG_NOTIFICATIONS && export TG_OFFER_CHATS_BOT_TOKEN=$TG_OFFERS && ./deploy.sh"
+          spawn ssh root@$IP "export TG_NOTIFICATIONS_BOT_TOKEN=$TG_NOTIFICATIONS && export TG_OFFER_CHATS_BOT_TOKEN=$TG_OFFERS && ./deploy.sh" && expect "root@" && send -- "$REGPWD\r" && interact
