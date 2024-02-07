@@ -24,4 +24,4 @@ jobs:
           TG_NOTIFICATIONS: ${{ vars.TG_NOTIFICATIONS_BOT_TOKEN  }}
           TG_OFFERS: ${{ vars.TG_OFFER_CHATS_BOT_TOKEN }}
         run: |
-          export IP=$IP && expect -c 'spawn ssh root@$IP "export TG_NOTIFICATIONS_BOT_TOKEN=$TG_NOTIFICATIONS && export TG_OFFER_CHATS_BOT_TOKEN=$TG_OFFERS && ./deploy.sh"; expect "password: "; send "$REGPWD\r"; interact'
+          export IP=$IP && expect -c -f 'spawn ssh root@$IP "export TG_NOTIFICATIONS_BOT_TOKEN=$TG_NOTIFICATIONS && export TG_OFFER_CHATS_BOT_TOKEN=$TG_OFFERS && ./deploy.sh"; expect "password: "; send "$REGPWD\r"; interact'
