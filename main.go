@@ -58,6 +58,8 @@ a.ui-button._responsive._primary _md - кнопка отклика с про
 .py-32.text-right.unmobile.flex-shrink-0.ml-auto.mobile - бюджет и дедлайн
 */
 
+// https://github.com/struCoder/pmgo
+
 var CHATS map[string]string
 var WATCH_CATEGORIES []string
 
