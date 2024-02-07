@@ -15,8 +15,8 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - shell: bash
-        run: apt install expect 
+      - name: Install expect
+        run: sudo apt-get install expect 
       - shell: bash
         env:
           IP: ${{ secrets.REGRUIP }}
