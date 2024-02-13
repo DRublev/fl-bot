@@ -94,9 +94,9 @@ func watchCategories(ctx context.Context, wg *sync.WaitGroup, chatID string, cat
 	defer close(checks)
 
 	select {
-	case <-ctx.Done():
-		fmt.Println("Ctx closed 1")
-		return
+	// case <-ctx.Done():
+	// 	fmt.Println("Ctx closed 1")
+	// 	return
 	default:
 		w := &sync.WaitGroup{}
 
@@ -104,8 +104,8 @@ func watchCategories(ctx context.Context, wg *sync.WaitGroup, chatID string, cat
 		go func() {
 			defer w.Done()
 			select {
-			case <-ctx.Done():
-				return
+			// case <-ctx.Done():
+			// 	return
 			case check, ok := <-checks:
 				if !ok {
 					fmt.Println("Check channel closed")
@@ -142,9 +142,9 @@ func watch(ctx context.Context, wg *sync.WaitGroup, chatID string, category stri
 
 	for range ticker.C {
 		select {
-		case <-ctx.Done():
-			fmt.Println("Context closed")
-			return
+		// case <-ctx.Done():
+		// 	fmt.Println("Context closed")
+		// 	return
 		default:
 			fmt.Println("Tick ", category)
 			getNewItemsForCategory(&category, &lastCheck, notViewedItems)

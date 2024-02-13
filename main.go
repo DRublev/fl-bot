@@ -121,7 +121,7 @@ func main() {
 	}
 
 	if <-isSucceed {
-		// wg.Add(1)
+		wg.Add(1)
 		// go getChatMessages(&ctx, wg, bots.OfferChatsBot)
 	}
 
