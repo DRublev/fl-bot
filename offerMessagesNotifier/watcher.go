@@ -89,32 +89,32 @@ type CheckChannelItem struct {
 func watchCategories(ctx context.Context, wg *sync.WaitGroup, chatID string, categories []string) {
 	defer wg.Done()
 	fmt.Println("Watching categories for", chatID, categories)
-	chatStoragePath := append(baseCheckHistoryStoragePath, chatID)
+	// chatStoragePath := append(baseCheckHistoryStoragePath, chatID)
 	checks := make(chan CheckChannelItem)
 	defer close(checks)
 
 	select {
-	// case <-ctx.Done():
-	// 	fmt.Println("Ctx closed 1")
-	// 	return
+	case <-ctx.Done():
+		fmt.Println("Ctx closed 1")
+		return
 	default:
 		w := &sync.WaitGroup{}
 
-		w.Add(1)
-		go func() {
-			defer w.Done()
-			select {
-			// case <-ctx.Done():
-			// 	return
-			case check, ok := <-checks:
-				if !ok {
-					fmt.Println("Check channel closed")
-					return
-				}
-				dbPath := append(chatStoragePath, check.Category+".txt")
-				dbInstance.Append(dbPath, []byte(check.Time.String()))
-			}
-		}()
+		// w.Add(1)
+		// go func() {
+		// 	defer w.Done()
+		// 	select {
+		// 	case <-ctx.Done():
+		// 		return
+		// 	case check, ok := <-checks:
+		// 		if !ok {
+		// 			fmt.Println("Check channel closed")
+		// 			return
+		// 		}
+		// 		dbPath := append(chatStoragePath, check.Category+".txt")
+		// 		dbInstance.Append(dbPath, []byte(check.Time.String()))
+		// 	}
+		// }()
 
 		for _, category := range categories {
 			log.Default().Println("Start watching category", category, chatID)
@@ -142,9 +142,9 @@ func watch(ctx context.Context, wg *sync.WaitGroup, chatID string, category stri
 
 	for range ticker.C {
 		select {
-		// case <-ctx.Done():
-		// 	fmt.Println("Context closed")
-		// 	return
+		case <-ctx.Done():
+			fmt.Println("Context closed")
+			return
 		default:
 			fmt.Println("Tick ", category)
 			getNewItemsForCategory(&category, &lastCheck, notViewedItems)
@@ -184,9 +184,9 @@ func sendUpdates(ctx context.Context, wg *sync.WaitGroup, chatID string, items *
 	defer wg.Done()
 	fmt.Println("Sending updates")
 	select {
-	// case <-ctx.Done():
-	// 	fmt.Println("Contxt closed 2")
-	// 	return
+	case <-ctx.Done():
+		fmt.Println("Contxt closed 2")
+		return
 	case item, ok := <-*items:
 		if ok {
 			message := "[" + item.Date.Local().Format("15:04:05 02.01.2006") + "] " + item.Title + "\n" + item.Content + "\n" + item.Link + "\n"

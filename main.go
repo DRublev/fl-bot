@@ -78,11 +78,11 @@ func restoreState() {
 }
 
 func main() {
-	if _, isDev := os.LookupEnv("DEV"); isDev {
-		if err := godotenv.Load(); err != nil {
-			log.Fatalln("Cannot load env!")
-		}
+	// if _, isDev := os.LookupEnv("DEV"); isDev {
+	if err := godotenv.Load(); err != nil {
+		log.Fatalln("Cannot load env!")
 	}
+	// }
 
 	// defer db.persist(state)
 
@@ -121,7 +121,7 @@ func main() {
 	}
 
 	if <-isSucceed {
-		wg.Add(1)
+		// wg.Add(1)
 		// go getChatMessages(&ctx, wg, bots.OfferChatsBot)
 	}
 
