@@ -184,9 +184,9 @@ func sendUpdates(ctx context.Context, wg *sync.WaitGroup, chatID string, items *
 	defer wg.Done()
 	fmt.Println("Sending updates")
 	select {
-	case <-ctx.Done():
-		fmt.Println("Contxt closed 2")
-		return
+	// case <-ctx.Done():
+	// 	fmt.Println("Contxt closed 2")
+	// 	return
 	case item, ok := <-*items:
 		if ok {
 			message := "[" + item.Date.Local().Format("15:04:05 02.01.2006") + "] " + item.Title + "\n" + item.Content + "\n" + item.Link + "\n"
