@@ -74,7 +74,7 @@ var cookies string = "1234" //"\"uechat_3_pages_count=4;_ga_RD9LL0K106=GS1.1.170
 // Писать последнию дату синхронизации в файл для каждого подписчика
 
 func restoreState() {
-	// db.restore() bot restart
+	// db.restore()
 }
 
 func main() {
