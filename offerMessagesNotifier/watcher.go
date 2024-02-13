@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"main/bots"
+
 	"github.com/SlyMarbo/rss"
 	"github.com/go-telegram/bot"
 )
@@ -94,6 +95,7 @@ func watchCategories(ctx context.Context, wg *sync.WaitGroup, chatID string, cat
 
 	select {
 	case <-ctx.Done():
+		fmt.Println("Ctx closed 1")
 		return
 	default:
 		w := &sync.WaitGroup{}
@@ -109,9 +111,8 @@ func watchCategories(ctx context.Context, wg *sync.WaitGroup, chatID string, cat
 					fmt.Println("Check channel closed")
 					return
 				}
-				dbPath := append(chatStoragePath, check.Category + ".txt",)
+				dbPath := append(chatStoragePath, check.Category+".txt")
 				dbInstance.Append(dbPath, []byte(check.Time.String()))
-
 			}
 		}()
 
@@ -136,28 +137,31 @@ func watch(ctx context.Context, wg *sync.WaitGroup, chatID string, category stri
 
 	lastCheck := getLastCheck(&chatID, &category)
 
-	ticker := time.NewTicker(time.Duration(CHECK_PERIOD_SEC) * time.Second)
+	ticker := time.NewTicker(CHECK_PERIOD_SEC * time.Second)
 	defer ticker.Stop()
 
-	select {
-	case <-ctx.Done():
-		return
-	case <-ticker.C:
-		fmt.Println("Tick ", category)
-		getNewItemsForCategory(&category, &lastCheck, notViewedItems)
+	for range ticker.C {
 		select {
+		case <-ctx.Done():
+			fmt.Println("Context closed")
+			return
+		default:
+			fmt.Println("Tick ", category)
+			getNewItemsForCategory(&category, &lastCheck, notViewedItems)
+			select {
 			case *checks <- CheckChannelItem{Time: lastCheck, Category: category}:
 				fmt.Println("Check ", lastCheck, category)
-			default:
-				return
+
+			}
 		}
+
 	}
 }
 
 func getNewItemsForCategory(category *string, lastCheckDate *time.Time, notViewedItems *chan rss.Item) {
 	items, err := flApi.GetOffersInCategoty(*category)
-
 	if err != nil {
+		fmt.Println("Error getting items ", err)
 		log.Default().Println("Error getting items for category ", *category, "\n", err)
 		getNewItemsForCategory(category, lastCheckDate, notViewedItems)
 	}
@@ -173,14 +177,15 @@ func getNewItemsForCategory(category *string, lastCheckDate *time.Time, notViewe
 
 func getLastCheck(chatID *string, category *string) time.Time {
 	// get from db or return now
-	return time.Now().Add(time.Duration(-60) * time.Minute)
+	return time.Now().Add(-60 * time.Minute)
 }
 
 func sendUpdates(ctx context.Context, wg *sync.WaitGroup, chatID string, items *chan rss.Item) {
 	defer wg.Done()
-
+	fmt.Println("Sending updates")
 	select {
 	case <-ctx.Done():
+		fmt.Println("Contxt closed 2")
 		return
 	case item, ok := <-*items:
 		if ok {
@@ -193,6 +198,7 @@ func sendUpdates(ctx context.Context, wg *sync.WaitGroup, chatID string, items *
 				fmt.Println("Error sending update message: ", err)
 			}
 		} else {
+			fmt.Println("Cannot read from channel")
 			log.Default().Panicln("Cannot read from channel")
 			return
 		}
