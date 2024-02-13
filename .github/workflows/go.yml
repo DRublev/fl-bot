@@ -28,4 +28,4 @@ jobs:
           TG_NOTIFICATIONS: ${{ vars.TG_NOTIFICATIONS_BOT_TOKEN }}
           TG_OFFERS: ${{ vars.TG_OFFER_CHATS_BOT_TOKEN }}
         run: |
-          ssh -o "StrictHostKeyChecking=no" root@${{env.IP}} "export TG_NOTIFICATIONS_BOT_TOKEN=${{env.TG_NOTIFICATIONS}} && export TG_OFFER_CHATS_BOT_TOKEN=${{env.TG_OFFERS}} && cd ~/src && rm -rf ./fl-bot && git clone git@github.com:DRublev/fl-bot.git && cd ./fl-bot && /usr/local/go/bin/go build -v && pm2 del fl-bot && TG_OFFER_CHATS_BOT_TOKEN=${{env.TG_OFFERS}} TG_NOTIFICATIONS_BOT_TOKEN=${{env.TG_NOTIFICATIONS}} pm2 start ./main --name fl-bot -l ~/log_${{github.sha}}"
+          ssh -o "StrictHostKeyChecking=no" root@${{env.IP}} "export TG_NOTIFICATIONS_BOT_TOKEN=${{env.TG_NOTIFICATIONS}} && export TG_OFFER_CHATS_BOT_TOKEN=${{env.TG_OFFERS}} && cd ~/src && rm -rf ./fl-bot && git clone git@github.com:DRublev/fl-bot.git && cd ./fl-bot && /usr/local/go/bin/go build -v && pm2 del fl-bot && TG_OFFER_CHATS_BOT_TOKEN=${{env.TG_OFFERS}} TG_NOTIFICATIONS_BOT_TOKEN=${{env.TG_NOTIFICATIONS}} pm2 start ./main --name fl-bot -l ~/logs/log_${{github.sha}}"
