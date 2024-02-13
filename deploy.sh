@@ -1,1 +1,1 @@
-cd ~/src && git clone git@github.com:DRublev/fl-bot.git && cd ./fl-bot && go build -v
+cd ~/src && rm -rf ./fl-bot && git clone git@github.com:DRublev/fl-bot.git && cd ./fl-bot && go build -v && pm2 del fl-bot && pm2 start ./main --name fl-bot -l ~/log
