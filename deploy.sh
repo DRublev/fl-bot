@@ -1,1 +1,1 @@
-cd ~/src && git clone git@github.com:DRublev/fl-bot.git && go build -v
+cd ~/src && git clone git@github.com:DRublev/fl-bot.git && cd ./fl-bot && go build -v

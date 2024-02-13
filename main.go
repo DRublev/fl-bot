@@ -29,7 +29,7 @@ import (
 	"sync"
 
 	"main/bots"
-	"main/chrome-proxy"
+	chromeproxy "main/chrome-proxy"
 
 	"os"
 
@@ -78,10 +78,12 @@ func restoreState() {
 }
 
 func main() {
-
-	if err := godotenv.Load(); err != nil {
-		log.Fatalln("Cannot load env!")
+	if _, isDev := os.LookupEnv("DEV"); isDev {
+		if err := godotenv.Load(); err != nil {
+			log.Fatalln("Cannot load env!")
+		}
 	}
+
 	// defer db.persist(state)
 
 	// CHATS = []string{"972086219", "713587013"}
@@ -100,6 +102,7 @@ func main() {
 	wg := &sync.WaitGroup{}
 
 	wg.Add(1)
+	// Сделать канал, куда писать сообщения, бот будет читать канал и их отсылать. Таким образом спрячу бота внутри пакета
 	go bots.StartBots(ctx, wg)
 
 	if <-bots.IsNotificationsBotReady {
