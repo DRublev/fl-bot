@@ -1,1 +1,1 @@
-cd $GOPATH/src && git clone git@github.com:DRublev/fl-bot.git && go build -v && pmgo stop flbot && pmgo start fl-bot flbot
+cd $GOPATH/src && git clone git@github.com:DRublev/fl-bot.git && go build -v

@@ -28,4 +28,4 @@ jobs:
           TG_NOTIFICATIONS: ${{ vars.TG_NOTIFICATIONS_BOT_TOKEN }}
           TG_OFFERS: ${{ vars.TG_OFFER_CHATS_BOT_TOKEN }}
         run: |
-          ssh -o "StrictHostKeyChecking=no" root@${{env.IP}} "export TG_NOTIFICATIONS_BOT_TOKEN=${{env.TG_NOTIFICATIONS}} && export TG_OFFER_CHATS_BOT_TOKEN=${{env.TG_OFFERS}} && mkdir ~/success"
+          ssh -o "StrictHostKeyChecking=no" root@${{env.IP}} "export TG_NOTIFICATIONS_BOT_TOKEN=${{env.TG_NOTIFICATIONS}} && export TG_OFFER_CHATS_BOT_TOKEN=${{env.TG_OFFERS}} && ~/deploy.sh"
