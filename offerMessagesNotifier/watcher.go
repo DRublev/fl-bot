@@ -6,6 +6,7 @@ import (
 	"log"
 	"main/db"
 	"main/fl"
+	"os"
 	"sync"
 	"time"
 
@@ -140,21 +141,20 @@ func watch(ctx context.Context, wg *sync.WaitGroup, chatID string, category stri
 	ticker := time.NewTicker(CHECK_PERIOD_SEC * time.Second)
 	defer ticker.Stop()
 
+	go func() {
+		<-ctx.Done()
+		fmt.Println("Context closed")
+		os.Exit(1)
+	}()
 	for range ticker.C {
-		select {
-		case <-ctx.Done():
-			fmt.Println("Context closed")
-			return
-		default:
-			fmt.Println("Tick ", category)
-			getNewItemsForCategory(&category, &lastCheck, notViewedItems)
+		fmt.Println("Tick ", category)
+		getNewItemsForCategory(&category, &lastCheck, notViewedItems)
+		go func() {
 			select {
 			case *checks <- CheckChannelItem{Time: lastCheck, Category: category}:
 				fmt.Println("Check ", lastCheck, category)
-
 			}
-		}
-
+		}()
 	}
 }
 
