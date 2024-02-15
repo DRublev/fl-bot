@@ -121,8 +121,8 @@ func main() {
 	}
 
 	if <-isSucceed {
-		// wg.Add(1)
-		// go getChatMessages(&ctx, wg, bots.OfferChatsBot)
+		wg.Add(1)
+		go getChatMessages(&ctx, wg, bots.OfferChatsBot)
 	}
 
 	wg.Wait()
@@ -308,7 +308,6 @@ func getChatMessages(c *context.Context, wg *sync.WaitGroup, b *bot.Bot) {
 			}
 		}
 	}
-
 }
 
 func sendNewMessages(c *context.Context, b *bot.Bot, chatId string, item Message) {
