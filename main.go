@@ -34,6 +34,7 @@ import (
 	"os"
 
 	"log"
+	"os/exec"
 	"os/signal"
 	"time"
 
@@ -99,7 +100,6 @@ func main() {
 
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
-
 	wg := &sync.WaitGroup{}
 
 	wg.Add(1)
@@ -113,30 +113,25 @@ func main() {
 	// }
 
 	wg.Add(1)
-	var cancelChrome func() error
-	isDefined := make(chan bool, 1)
-	go runLogin(wg, &cancelChrome, isDefined)
-	<-isDefined
-	if cancelChrome != nil {
-		defer cancelChrome()
-	}
+	<-time.After(3 * time.Second)
+	go runLogin(&ctx, wg)
 
 	wg.Wait()
 }
 
-func runLogin(wg *sync.WaitGroup, cancelChrome *func() error, isDefined chan bool) {
+func runLogin(c *context.Context, wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	if len(cookies) == 0 && <-bots.IsOfferChatBotReady {
 		fmt.Println("Trying to log in")
-		isOk, cancel := login(bots.OfferChatsBot)
+		isOk, cancel := login(*c, bots.OfferChatsBot)
 		if <-isOk {
 			wg.Add(1)
-			go getChatMessages(&ctx, wg, bots.OfferChatsBot)
-			cancelChrome = &cancel
-			isDefined <- true
+			go getChatMessages(ctx, wg, bots.OfferChatsBot)
+			cancel()
 		} else {
-			runLogin(wg, cancelChrome, isDefined)
+			wg.Add(1)
+			go runLogin(c, wg)
 		}
 	}
 }
@@ -209,7 +204,7 @@ type Message struct {
 	IsReadByEmp bool
 }
 
-func getChatMessages(c *context.Context, wg *sync.WaitGroup, b *bot.Bot) {
+func getChatMessages(c context.Context, wg *sync.WaitGroup, b *bot.Bot) {
 	defer wg.Done()
 
 	const CHECK_PERIOD_SEC = 5
@@ -218,6 +213,12 @@ func getChatMessages(c *context.Context, wg *sync.WaitGroup, b *bot.Bot) {
 		fmt.Println("Not ok with starting offer chats bot")
 		return
 	}
+
+	go func() {
+		<-c.Done()
+		fmt.Println("Context closed")
+		os.Exit(1)
+	}()
 	for range ticker.C {
 		fmt.Println("Reading messages")
 		req, err := http.NewRequest("GET", "https://www.fl.ru/projects/offers/?limit=20&dialogues=1&deleted=1&sort=lastMessage&offset=0", nil)
@@ -330,12 +331,12 @@ func getChatMessages(c *context.Context, wg *sync.WaitGroup, b *bot.Bot) {
 	}
 }
 
-func sendNewMessages(c *context.Context, b *bot.Bot, chatId string, item Message) {
+func sendNewMessages(c context.Context, b *bot.Bot, chatId string, item Message) {
 	orderUrl := item.Project.Url
 	content := item.Text
 	message := "От: " + item.Project.Author + "\n" + "По заказу " + item.Project.Name + " (" + orderUrl + ")\n" + content
 	fmt.Println("Sending message: ", chatId, "   ", message)
-	_, err := b.SendMessage(*c, &bot.SendMessageParams{
+	_, err := b.SendMessage(c, &bot.SendMessageParams{
 		ChatID: chatId,
 		Text:   message,
 	})
@@ -469,13 +470,22 @@ var r = e.content
 
 // const LOGIN = "aringai09@gmail.com" // Nast-ka.666@mail.ru
 // const PASS = "7fJxtyFQsamsung!"     //fyrgonSk-Doo2023
-const LOGIN = "'Nast-ka.666@mail.ru" // 'Nast-ka.666@mail.ru
-const PASS = "fyrgonSk-Doo2023"      // fyrgonSk-Doo2023
+const LOGIN = "Nast-ka.666@mail.ru" // 'Nast-ka.666@mail.ru
+const PASS = "fyrgonSk-Doo2023"     // fyrgonSk-Doo2023
 
-func login(b *bot.Bot) (chan bool, func() error) {
-	fmt.Println("not login", bots.OfferChatsBot)
+func login(c context.Context, b *bot.Bot) (chan bool, func() error) {
 	url := "https://www.fl.ru/account/login/"
 	chromeproxy.PrepareProxy(":9223", ":9221", chromedp.DisableGPU)
+
+	go func() {
+		<-c.Done()
+
+		cmd := exec.Command("pgrep chrome | xargs kill -9")
+		cmd.Run()
+
+		fmt.Println("Context closed")
+		os.Exit(1)
+	}()
 
 	ip := "89.104.67.153" //getLocalIp()
 
