@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"strings"
 	"sync"
 
@@ -51,10 +52,17 @@ func PrepareProxy(chromeListenAddr string, frontendListenAddr string, customOpts
 
 	// create context and keep alive
 	go func() {
-		conf := chromedpundetected.NewConfig(
-			chromedpundetected.WithChromeFlags(opts...),
-			// chromedpundetected.WithHeadless(),
-		)
+		var conf chromedpundetected.Config
+		if _, isProd := os.LookupEnv("PROD"); isProd {
+			conf = chromedpundetected.NewConfig(
+				chromedpundetected.WithChromeFlags(opts...),
+				chromedpundetected.WithHeadless(),
+			)
+		} else {
+			conf = chromedpundetected.NewConfig(
+				chromedpundetected.WithChromeFlags(opts...),
+			)
+		}
 		conf.Ctx = context.Background()
 		ctx, cancel, err := chromedpundetected.New(conf)
 
