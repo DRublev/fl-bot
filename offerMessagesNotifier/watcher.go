@@ -52,7 +52,8 @@ var testWatchCategories = map[string][]string{
 	"972086219": {"3", "10", "17", "19"},
 }
 
-func Start(ctx context.Context) {
+func Start(ctx context.Context, w *sync.WaitGroup) {
+	defer w.Done()
 	select {
 	case <-ctx.Done():
 		fmt.Println("Context closed!")
