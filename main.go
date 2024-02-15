@@ -78,11 +78,11 @@ func restoreState() {
 }
 
 func main() {
-	if _, isDev := os.LookupEnv("DEV"); isDev {
-		if err := godotenv.Load(); err != nil {
-			log.Fatalln("Cannot load env!")
-		}
+	// if _, isDev := os.LookupEnv("DEV"); isDev {
+	if err := godotenv.Load(); err != nil {
+		log.Fatalln("Cannot load env!")
 	}
+	// }
 
 	// defer db.persist(state)
 
@@ -118,8 +118,6 @@ func main() {
 		isOk, cancelChrome := login(bots.OfferChatsBot)
 		isSucceed <- <-isOk
 		defer cancelChrome()
-	} else {
-		isSucceed <- true
 	}
 
 	if <-isSucceed {
@@ -453,6 +451,7 @@ const LOGIN = "aringai09@gmail.com" // 'Nast-ka.666@mail.ru
 const PASS = "7fJxtyFQsamsung!"     //fyrgonSk-Doo2023
 
 func login(b *bot.Bot) (chan bool, func() error) {
+	fmt.Println("not login", bots.OfferChatsBot)
 	url := "https://www.fl.ru/account/login/"
 	chromeproxy.PrepareProxy(":9223", ":9221", chromedp.DisableGPU)
 
@@ -542,6 +541,8 @@ func login(b *bot.Bot) (chan bool, func() error) {
 			fmt.Println("err 2", err)
 
 			isCsrfToken <- false
+			chromeproxy.CloseTarget(targetId)
+
 			log.Println("Error waiting for auth token: ", err)
 		}
 	}()
@@ -575,6 +576,8 @@ func login(b *bot.Bot) (chan bool, func() error) {
 		})
 
 		if err != nil && !errors.Is(err, context.Canceled) {
+			chromeproxy.CloseTarget(targetId)
+
 			fmt.Println("err 3", err)
 
 			isCookies <- false

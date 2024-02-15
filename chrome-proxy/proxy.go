@@ -36,8 +36,8 @@ func PrepareProxy(chromeListenAddr string, frontendListenAddr string, customOpts
 	// split up chromeListenAddr, default host to 127.0.0.1 if not specified
 	chromeListenAddrSplit := strings.Split(chromeListenAddr, ":")
 	if chromeListenAddrSplit[0] == "" {
-		chromeListenAddrSplit[0] = "89.104.67.153"
-		// chromeListenAddrSplit[0] = "127.0.0.1"
+		// chromeListenAddrSplit[0] = "89.104.67.153"
+		chromeListenAddrSplit[0] = "127.0.0.1"
 	}
 
 	// insert remote-debugging flags and any additional options
@@ -53,7 +53,7 @@ func PrepareProxy(chromeListenAddr string, frontendListenAddr string, customOpts
 	go func() {
 		conf := chromedpundetected.NewConfig(
 			chromedpundetected.WithChromeFlags(opts...),
-			chromedpundetected.WithHeadless(),
+			// chromedpundetected.WithHeadless(),
 		)
 		conf.Ctx = context.Background()
 		ctx, cancel, err := chromedpundetected.New(conf)

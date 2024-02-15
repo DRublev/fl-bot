@@ -68,12 +68,13 @@ func startChatsBot(wg *sync.WaitGroup, ctx *context.Context) {
 
 	log.Default().Println("Starting offer chats bot")
 
-	offerChatsBot, err := StartNotificationsBot(token)
+	offerChatsBot, err := StartOfferChatsBot(token)
 	if err != nil {
 		log.Default().Println("Failed to start ffer chats bot: ", err)
 		IsOfferChatBotReady <- false
 		return
 	}
+	OfferChatsBot = offerChatsBot
 	IsOfferChatBotReady <- offerChatsBot != nil
 
 	offerChatsBot.Start(*ctx)
