@@ -112,20 +112,33 @@ func main() {
 	// 	go offerMessagesNotifier.Start(ctx, wg)
 	// }
 
-	isSucceed := make(chan bool, 1)
-	if len(cookies) == 0 && <-bots.IsOfferChatBotReady {
-		fmt.Println("Trying to log in")
-		isOk, cancelChrome := login(bots.OfferChatsBot)
-		isSucceed <- <-isOk
+	wg.Add(1)
+	var cancelChrome func() error
+	isDefined := make(chan bool, 1)
+	go runLogin(wg, &cancelChrome, isDefined)
+	<-isDefined
+	if cancelChrome != nil {
 		defer cancelChrome()
 	}
 
-	if <-isSucceed {
-		wg.Add(1)
-		go getChatMessages(&ctx, wg, bots.OfferChatsBot)
-	}
-
 	wg.Wait()
+}
+
+func runLogin(wg *sync.WaitGroup, cancelChrome *func() error, isDefined chan bool) {
+	defer wg.Done()
+
+	if len(cookies) == 0 && <-bots.IsOfferChatBotReady {
+		fmt.Println("Trying to log in")
+		isOk, cancel := login(bots.OfferChatsBot)
+		if <-isOk {
+			wg.Add(1)
+			go getChatMessages(&ctx, wg, bots.OfferChatsBot)
+			cancelChrome = &cancel
+			isDefined <- true
+		} else {
+			runLogin(wg, cancelChrome, isDefined)
+		}
+	}
 }
 
 type User struct {
@@ -476,6 +489,18 @@ func login(b *bot.Bot) (chan bool, func() error) {
 	isSucceed := make(chan bool, 1)
 	isCsrfToken := make(chan bool, 1)
 	isCookies := make(chan bool, 1)
+
+	go func() {
+		err = chromedp.Run(ctx, chromedp.Tasks{
+			chromedp.WaitReady("window"),
+			chromedp.WaitVisible("#'no-session", chromedp.NodeVisible),
+		})
+		if err == nil {
+			chromeproxy.CloseTarget(targetId)
+			fmt.Println("No session found")
+			isSucceed <- false
+		}
+	}()
 
 	go func() {
 		err = chromedp.Run(ctx, chromedp.Tasks{
