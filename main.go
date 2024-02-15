@@ -199,108 +199,115 @@ type Message struct {
 func getChatMessages(c *context.Context, wg *sync.WaitGroup, b *bot.Bot) {
 	defer wg.Done()
 
-	req, err := http.NewRequest("GET", "https://www.fl.ru/projects/offers/?limit=20&dialogues=1&deleted=1&sort=lastMessage&offset=0", nil)
-	if err != nil {
-		fmt.Println("Error getting chats", err)
+	const CHECK_PERIOD_SEC = 5
+	ticker := time.NewTicker(CHECK_PERIOD_SEC * time.Second)
+	if ok := <-bots.IsOfferChatBotReady; !ok {
+		fmt.Println("Not ok with starting offer chats bot")
+		return
 	}
-	fmt.Println("bots.OfferChatsBot", b)
-
-	fmt.Println("Getting chats with params \n" + strings.Trim(csrfToken, "\"") + "\n" + strings.Trim(cookies, "\""))
-	req.Header.Set("x-csrf-token", strings.Trim(csrfToken, "\""))
-	req.Header.Set("x-xsrf-token", strings.Trim(csrfToken, "\""))
-	req.Header.Set("Cookie", strings.Trim(cookies, "\""))
-	req.Header.Set("referer", "https://www.fl.ru/messages/")
-
-	res, err := http.DefaultClient.Do(req)
-
-	if err != nil {
-		fmt.Println("Error getting chats res", err)
-	}
-
-	fmt.Println("response", res.Status)
-	body, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		fmt.Println("Error getting chats res", err)
-	}
-	defer res.Body.Close()
-
-	var result OffersResponse
-
-	err = json.Unmarshal(body, &result)
-	if err != nil {
-		fmt.Println("Cannot unmarshal ", err)
-	}
-
-	notReadMessages := make(map[string][]Message)
-
-	chatsByLogin := make(map[string]string)
-	for chatId, login := range CHATS {
-		chatsByLogin[login] = chatId
-	}
-
-	authorIdChatMap := make(map[int]string)
-	for _, item := range result.Items {
-		chatId, ok := chatsByLogin[item.Author.Username]
-		if ok {
-			authorIdChatMap[item.Author.Id] = chatId
+	for range ticker.C {
+		fmt.Println("Reading messages")
+		req, err := http.NewRequest("GET", "https://www.fl.ru/projects/offers/?limit=20&dialogues=1&deleted=1&sort=lastMessage&offset=0", nil)
+		if err != nil {
+			fmt.Println("Error getting chats", err)
 		}
-	}
+		fmt.Println("bots.OfferChatsBot", b)
 
-	projectsMap := make(map[int]Project)
-	fmt.Println("Projects: ", len(result.Messages))
-	for _, project := range result.Projects {
-		if project.IsTrashed {
-			fmt.Println("Trashed project")
-			continue
+		fmt.Println("Getting chats with params \n" + strings.Trim(csrfToken, "\"") + "\n" + strings.Trim(cookies, "\""))
+		req.Header.Set("x-csrf-token", strings.Trim(csrfToken, "\""))
+		req.Header.Set("x-xsrf-token", strings.Trim(csrfToken, "\""))
+		req.Header.Set("Cookie", strings.Trim(cookies, "\""))
+		req.Header.Set("referer", "https://www.fl.ru/messages/")
+
+		res, err := http.DefaultClient.Do(req)
+
+		if err != nil {
+			fmt.Println("Error getting chats res", err)
 		}
 
-		projectsMap[project.Id] = Project{
-			Id:     project.Id,
-			Author: project.Author.Username,
-			Name:   project.Name,
-			Url:    project.Url,
+		fmt.Println("response", res.Status)
+		body, err := ioutil.ReadAll(res.Body)
+		if err != nil {
+			fmt.Println("Error getting chats res", err)
 		}
-	}
 
-	for _, message := range result.Messages {
-		_, ok := authorIdChatMap[message.FromId]
-		var chatId string
+		var result OffersResponse
+
+		err = json.Unmarshal(body, &result)
+		if err != nil {
+			fmt.Println("Cannot unmarshal ", err)
+		}
+		res.Body.Close()
+
+		notReadMessages := make(map[string][]Message)
+
+		chatsByLogin := make(map[string]string)
+		for chatId, login := range CHATS {
+			chatsByLogin[login] = chatId
+		}
+
+		authorIdChatMap := make(map[int]string)
 		for _, item := range result.Items {
-			if item.ProjectId != message.ProjectId {
+			chatId, ok := chatsByLogin[item.Author.Username]
+			if ok {
+				authorIdChatMap[item.Author.Id] = chatId
+			}
+		}
+
+		projectsMap := make(map[int]Project)
+		fmt.Println("Projects: ", len(result.Messages))
+		for _, project := range result.Projects {
+			if project.IsTrashed {
+				fmt.Println("Trashed project")
 				continue
 			}
-			candidate, ok := authorIdChatMap[item.Author.Id]
-			if ok {
-				chatId = candidate
-			}
-		}
-		// if !ok && !message.IsReadByMe {
-		if !ok && len(chatId) > 0 {
-			project, ok := projectsMap[message.ProjectId]
-			if !ok {
-				fmt.Println("Unknown project ", message.ProjectId)
-			}
-			fmt.Println("New message! ", message)
-			if notReadMessages[chatId] == nil {
-				notReadMessages[chatId] = []Message{}
-			}
-			notReadMessages[chatId] = append(notReadMessages[chatId], Message{
-				Id:          message.Id,
-				FromId:      message.FromId,
-				Text:        message.Text,
-				Format:      message.Format,
-				OfferId:     message.OfferId,
-				IsReadByMe:  message.IsReadByMe,
-				IsReadByEmp: message.IsReadByEmp,
-				Project:     project,
-			})
-		} else {
-			fmt.Println(" Read or from me ", ok, message.IsReadByMe)
-		}
-	}
 
-	fmt.Println("Not read map ", len(notReadMessages))
-	if <-bots.IsOfferChatBotReady {
+			projectsMap[project.Id] = Project{
+				Id:     project.Id,
+				Author: project.Author.Username,
+				Name:   project.Name,
+				Url:    project.Url,
+			}
+		}
+
+		for _, message := range result.Messages {
+			_, ok := authorIdChatMap[message.FromId]
+			var chatId string
+			for _, item := range result.Items {
+				if item.ProjectId != message.ProjectId {
+					continue
+				}
+				candidate, ok := authorIdChatMap[item.Author.Id]
+				if ok {
+					chatId = candidate
+				}
+			}
+			// if !ok && !message.IsReadByMe {
+			if !ok && len(chatId) > 0 {
+				project, ok := projectsMap[message.ProjectId]
+				if !ok {
+					fmt.Println("Unknown project ", message.ProjectId)
+				}
+				fmt.Println("New message! ", message)
+				if notReadMessages[chatId] == nil {
+					notReadMessages[chatId] = []Message{}
+				}
+				notReadMessages[chatId] = append(notReadMessages[chatId], Message{
+					Id:          message.Id,
+					FromId:      message.FromId,
+					Text:        message.Text,
+					Format:      message.Format,
+					OfferId:     message.OfferId,
+					IsReadByMe:  message.IsReadByMe,
+					IsReadByEmp: message.IsReadByEmp,
+					Project:     project,
+				})
+			} else {
+				fmt.Println(" Read or from me ", ok, message.IsReadByMe)
+			}
+		}
+
+		fmt.Println("Not read map ", len(notReadMessages))
 		for chatId, messages := range notReadMessages {
 			fmt.Println("Sending message to chat ", chatId)
 			for _, message := range messages {
