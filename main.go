@@ -23,7 +23,6 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"main/offerMessagesNotifier"
 	"net/http"
 	"strings"
 	"sync"
@@ -107,14 +106,15 @@ func main() {
 	// Сделать канал, куда писать сообщения, бот будет читать канал и их отсылать. Таким образом спрячу бота внутри пакета
 	go bots.StartBots(ctx, wg)
 
-	if <-bots.IsNotificationsBotReady {
-		fmt.Println("Starting to watch ", bots.NotificationsBot)
-		wg.Add(1)
-		go offerMessagesNotifier.Start(ctx, wg)
-	}
+	// if <-bots.IsNotificationsBotReady {
+	// 	fmt.Println("Starting to watch ", bots.NotificationsBot)
+	// 	wg.Add(1)
+	// 	go offerMessagesNotifier.Start(ctx, wg)
+	// }
 
 	isSucceed := make(chan bool, 1)
-	if len(cookies) == 0 {
+	if len(cookies) == 0 && <-bots.IsOfferChatBotReady {
+		fmt.Println("Trying to log in")
 		isOk, cancelChrome := login(bots.OfferChatsBot)
 		isSucceed <- <-isOk
 		defer cancelChrome()
@@ -456,7 +456,7 @@ func login(b *bot.Bot) (chan bool, func() error) {
 	url := "https://www.fl.ru/account/login/"
 	chromeproxy.PrepareProxy(":9223", ":9221", chromedp.DisableGPU)
 
-	ip := getLocalIp()
+	ip := "89.104.67.153" //getLocalIp()
 
 	targetId, err := chromeproxy.NewTab(url, chromedp.WithLogf(log.Printf))
 	if err != nil {
