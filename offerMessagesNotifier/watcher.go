@@ -90,7 +90,7 @@ type CheckChannelItem struct {
 func watchCategories(ctx context.Context, wg *sync.WaitGroup, chatID string, categories []string) {
 	defer wg.Done()
 	fmt.Println("Watching categories for", chatID, categories)
-	// chatStoragePath := append(baseCheckHistoryStoragePath, chatID)
+	chatStoragePath := append(baseCheckHistoryStoragePath, chatID)
 	checks := make(chan CheckChannelItem)
 	defer close(checks)
 
@@ -101,21 +101,21 @@ func watchCategories(ctx context.Context, wg *sync.WaitGroup, chatID string, cat
 	default:
 		w := &sync.WaitGroup{}
 
-		// w.Add(1)
-		// go func() {
-		// 	defer w.Done()
-		// 	select {
-		// 	case <-ctx.Done():
-		// 		return
-		// 	case check, ok := <-checks:
-		// 		if !ok {
-		// 			fmt.Println("Check channel closed")
-		// 			return
-		// 		}
-		// 		dbPath := append(chatStoragePath, check.Category+".txt")
-		// 		dbInstance.Append(dbPath, []byte(check.Time.String()))
-		// 	}
-		// }()
+		w.Add(1)
+		go func() {
+			defer w.Done()
+			select {
+			case <-ctx.Done():
+				return
+			case check, ok := <-checks:
+				if !ok {
+					fmt.Println("Check channel closed")
+					return
+				}
+				dbPath := append(chatStoragePath, check.Category+".txt")
+				dbInstance.Append(dbPath, []byte(check.Time.String()))
+			}
+		}()
 
 		for _, category := range categories {
 			log.Default().Println("Start watching category", category, chatID)
@@ -177,7 +177,7 @@ func getNewItemsForCategory(category *string, lastCheckDate *time.Time, notViewe
 
 func getLastCheck(chatID *string, category *string) time.Time {
 	// get from db or return now
-	return time.Now().Add(-60 * time.Minute)
+	return time.Now().Add(-15 * time.Minute)
 }
 
 func sendUpdates(ctx context.Context, wg *sync.WaitGroup, chatID string, items *chan rss.Item) {

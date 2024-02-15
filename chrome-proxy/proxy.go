@@ -1,4 +1,5 @@
 package chromeproxy
+
 //https://github.com/jarylc/go-chromedpproxy
 
 import (
@@ -51,7 +52,7 @@ func PrepareProxy(chromeListenAddr string, frontendListenAddr string, customOpts
 	go func() {
 		conf := chromedpundetected.NewConfig(
 			chromedpundetected.WithChromeFlags(opts...),
-			// chromedpundetected.WithHeadless(),
+			chromedpundetected.WithHeadless(),
 		)
 		conf.Ctx = context.Background()
 		ctx, cancel, _ := chromedpundetected.New(conf)
