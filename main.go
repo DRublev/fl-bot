@@ -458,6 +458,7 @@ func login(b *bot.Bot) (chan bool, func() error) {
 
 	targetId, err := chromeproxy.NewTab(url, chromedp.WithLogf(log.Printf))
 	if err != nil {
+		fmt.Println("Error launching chrome", err)
 		log.Fatalln("Error launching chrome: ", err.Error())
 	}
 	ctx := chromeproxy.GetTarget(targetId)
