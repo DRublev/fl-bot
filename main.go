@@ -454,8 +454,10 @@ var r = e.content
 // err = page.AddInitScript(initScript)
 // log.Fatalln(err)
 
-const LOGIN = "aringai09@gmail.com" // 'Nast-ka.666@mail.ru
-const PASS = "7fJxtyFQsamsung!"     //fyrgonSk-Doo2023
+// const LOGIN = "aringai09@gmail.com" // Nast-ka.666@mail.ru
+// const PASS = "7fJxtyFQsamsung!"     //fyrgonSk-Doo2023
+const LOGIN = "'Nast-ka.666@mail.ru" // 'Nast-ka.666@mail.ru
+const PASS = "fyrgonSk-Doo2023"      // fyrgonSk-Doo2023
 
 func login(b *bot.Bot) (chan bool, func() error) {
 	fmt.Println("not login", bots.OfferChatsBot)
