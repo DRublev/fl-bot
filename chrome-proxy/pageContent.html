@@ -114,7 +114,7 @@
             console.log(e)
             const body = document.querySelector("body");
             if (sessionId === null) {
-                body.innerText = "<span id='no-session'>No session was found</span>";
+                body.innerHTML = "<span id='no-session'>No session was found</span>";
             } else {
                 body.innerText = "Connection has been closed";
             }
