@@ -27,6 +27,7 @@ import (
 	"net/http"
 	"strings"
 	"sync"
+	"syscall"
 
 	"main/bots"
 	chromeproxy "main/chrome-proxy"
@@ -97,7 +98,7 @@ func main() {
 	// now := time.Now()
 	// initialCheckDate := now.Add(time.Duration(-30) * time.Second)
 
-	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
 
 	wg := &sync.WaitGroup{}
@@ -508,6 +509,7 @@ func login(b *bot.Bot) (chan bool, func() error) {
 
 		if err != nil {
 			chromeproxy.CloseTarget(targetId)
+			fmt.Println("err 1", err)
 			isSucceed <- false
 			log.Println("Error logging in: ", err)
 		}
@@ -536,6 +538,8 @@ func login(b *bot.Bot) (chan bool, func() error) {
 		})
 
 		if err != nil && !errors.Is(err, context.Canceled) {
+			fmt.Println("err 2", err)
+
 			isCsrfToken <- false
 			log.Println("Error waiting for auth token: ", err)
 		}
@@ -570,6 +574,8 @@ func login(b *bot.Bot) (chan bool, func() error) {
 		})
 
 		if err != nil && !errors.Is(err, context.Canceled) {
+			fmt.Println("err 3", err)
+
 			isCookies <- false
 			log.Println("Error waiting for auth token: ", err)
 		}
@@ -585,6 +591,8 @@ func login(b *bot.Bot) (chan bool, func() error) {
 			}),
 		})
 		if err != nil && !errors.Is(err, context.Canceled) {
+			fmt.Println("err 4", err)
+
 			isSucceed <- false
 			log.Println("Error waiting capcha solved: ", err)
 		}

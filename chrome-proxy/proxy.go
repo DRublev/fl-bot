@@ -55,7 +55,11 @@ func PrepareProxy(chromeListenAddr string, frontendListenAddr string, customOpts
 			chromedpundetected.WithHeadless(),
 		)
 		conf.Ctx = context.Background()
-		ctx, cancel, _ := chromedpundetected.New(conf)
+		ctx, cancel, err := chromedpundetected.New(conf)
+
+		if err != nil {
+			fmt.Println("error in PrepareProxy", err)
+		}
 
 		defer cancel()
 		mainContext = ctx
