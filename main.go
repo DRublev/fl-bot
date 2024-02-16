@@ -88,7 +88,6 @@ func main() {
 
 	// defer db.persist(state)
 
-	// CHATS = []string{"972086219", "713587013"}
 	CHATS = map[string]string{
 		"713587013": "aringai09",
 		"972086219": "nast-ka.666",
@@ -96,12 +95,15 @@ func main() {
 	// WATCH_CATEGORIES = []string{"3", "10", "17", "19"}
 	WATCH_CATEGORIES = []string{}
 
-	// now := time.Now()
-	// initialCheckDate := now.Add(time.Duration(-30) * time.Second)
-
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
 	wg := &sync.WaitGroup{}
+
+	go func() {
+		<-ctx.Done()
+		fmt.Println("Main exit")
+		os.Exit(1)
+	}()
 
 	wg.Add(1)
 	// Сделать канал, куда писать сообщения, бот будет читать канал и их отсылать. Таким образом спрячу бота внутри пакета

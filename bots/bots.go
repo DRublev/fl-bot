@@ -25,17 +25,24 @@ func StartBots(ctx context.Context, wg *sync.WaitGroup) {
 		w := &sync.WaitGroup{}
 
 		w.Add(1)
-		go startNotificationsBot(w, ctx)
+		go startNotificationsBot(ctx, w)
 		w.Add(1)
-		go startChatsBot(w, &ctx)
+		go startChatsBot(ctx, w)
 
 		w.Wait()
 	}
 }
 
-func startNotificationsBot(wg *sync.WaitGroup, ctx context.Context) {
+func startNotificationsBot(ctx context.Context, wg *sync.WaitGroup) {
 	defer wg.Done()
-	token, exists := os.LookupEnv("TG_NOTIFICATIONS_BOT_TOKEN")
+
+	_, isProd := os.LookupEnv("PROD")
+	tokenKey := "TG_NOTIFICATIONS_BOT_TOKEN"
+	if !isProd {
+		tokenKey = "TG_DEV_NOTIFICATIONS_BOT_TOKEN"
+	}
+
+	token, exists := os.LookupEnv(tokenKey)
 	if !exists {
 		log.Default().Println("No notifications bot token provided!")
 		IsNotificationsBotReady <- false
@@ -57,9 +64,16 @@ func startNotificationsBot(wg *sync.WaitGroup, ctx context.Context) {
 	NotificationsBot.Start(ctx)
 }
 
-func startChatsBot(wg *sync.WaitGroup, ctx *context.Context) {
+func startChatsBot(ctx context.Context, wg *sync.WaitGroup) {
 	defer wg.Done()
-	token, exists := os.LookupEnv("TG_OFFER_CHATS_BOT_TOKEN")
+
+	_, isProd := os.LookupEnv("PROD")
+	tokenKey := "TG_OFFER_CHATS_BOT_TOKEN"
+	if !isProd {
+		tokenKey = "TG_DEV_OFFER_CHATS_BOT_TOKEN"
+	}
+
+	token, exists := os.LookupEnv(tokenKey)
 	if !exists {
 		log.Default().Println("No offer chats bot token provided!")
 		IsOfferChatBotReady <- false
@@ -77,5 +91,5 @@ func startChatsBot(wg *sync.WaitGroup, ctx *context.Context) {
 	OfferChatsBot = offerChatsBot
 	IsOfferChatBotReady <- offerChatsBot != nil
 
-	offerChatsBot.Start(*ctx)
+	offerChatsBot.Start(ctx)
 }
