@@ -29,8 +29,8 @@ import (
 	"syscall"
 
 	"main/bots"
+	"main/chatsWatcher"
 	chromeproxy "main/chrome-proxy"
-	"main/offerMessagesNotifier"
 
 	"os"
 
@@ -39,7 +39,6 @@ import (
 	"os/signal"
 	"time"
 
-	"github.com/SlyMarbo/rss"
 	"github.com/chromedp/cdproto/network"
 	"github.com/chromedp/chromedp"
 	"github.com/joho/godotenv"
@@ -62,8 +61,10 @@ a.ui-button._responsive._primary _md - кнопка отклика с про
 
 // https://github.com/struCoder/pmgo
 
-var CHATS map[string]string
-var WATCH_CATEGORIES []string
+var CHATS map[string]string = map[string]string{
+	"713587013": "aringai09",
+	"972086219": "nast-ka.666",
+}
 
 var ctx context.Context
 
@@ -80,20 +81,18 @@ func restoreState() {
 }
 
 func main() {
-	if _, isProd := os.LookupEnv("PROD"); !isProd {
+	_, isProd := os.LookupEnv("PROD")
+	if !isProd {
 		if err := godotenv.Load(); err != nil {
 			log.Fatalln("Cannot load env!")
+		}
+
+		CHATS = map[string]string{
+			"713587013": "aringai09",
 		}
 	}
 
 	// defer db.persist(state)
-
-	CHATS = map[string]string{
-		"713587013": "aringai09",
-		"972086219": "nast-ka.666",
-	}
-	// WATCH_CATEGORIES = []string{"3", "10", "17", "19"}
-	WATCH_CATEGORIES = []string{}
 
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
@@ -110,14 +109,18 @@ func main() {
 	go bots.StartBots(ctx, wg)
 
 	if <-bots.IsNotificationsBotReady {
-		fmt.Println("Starting to watch ", bots.NotificationsBot)
-		wg.Add(1)
-		go offerMessagesNotifier.Start(ctx, wg)
+		fmt.Println("Starting to watch new offers ", bots.NotificationsBot != nil)
+		// wg.Add(1)
+		// go offerMessagesNotifier.Start(ctx, wg)
 	}
 
-	// wg.Add(1)
-	// <-time.After(3 * time.Second)
-	// go runLogin(&ctx, wg)
+	if <-bots.IsOfferChatBotReady {
+		for chatId := range CHATS {
+			wg.Add(1)
+			fmt.Println("Starting to watch new messages ", chatId, bots.OfferChatsBot != nil)
+			go chatsWatcher.Watch(ctx, wg, chatId)
+		}
+	}
 
 	wg.Wait()
 }
@@ -228,7 +231,6 @@ func getChatMessages(c context.Context, wg *sync.WaitGroup, b *bot.Bot) {
 		if err != nil {
 			fmt.Println("Error getting chats", err)
 		}
-		fmt.Println("bots.OfferChatsBot", b)
 
 		fmt.Println("Getting chats with params \n" + strings.Trim(csrfToken, "\"") + "\n" + strings.Trim(cookies, "\""))
 		req.Header.Set("x-csrf-token", strings.Trim(csrfToken, "\""))
@@ -374,84 +376,6 @@ func readMessage(projectId int, offerId int) {
 	}
 }
 
-func watchCategory(wg *sync.WaitGroup, ctx context.Context, category string, initialCheckDate time.Time) {
-	defer wg.Done()
-
-	fmt.Println("Watching category ", category)
-	lastCheckDate := initialCheckDate
-
-	for range time.Tick(time.Second * 5) {
-		select {
-		case <-ctx.Done():
-			return
-		default:
-			if ctx != nil {
-				// Тут можно юзать каналы
-				rescentItems := getItemsForCategory(&category, &lastCheckDate)
-				fmt.Println("len items ", len(rescentItems))
-				sendUpdates(&rescentItems)
-			} else {
-				fmt.Println("Timer tick, but ctx is nil")
-			}
-		}
-	}
-
-}
-
-func sendUpdates(items *[]rss.Item) {
-	for _, item := range *items {
-		message := formatUpdateMessage(&item)
-
-		for chatId := range CHATS {
-			_, err := bots.NotificationsBot.SendMessage(ctx, &bot.SendMessageParams{
-				ChatID: chatId,
-				Text:   message,
-			})
-			if err != nil {
-				fmt.Println("Error sending update message: ", err)
-			}
-		}
-	}
-}
-
-func formatUpdateMessage(item *rss.Item) string {
-	message := "[" + item.Date.Local().Format("15:04:05 02.01.2006") + "] " + item.Title + "\n" + item.Content + "\n" + item.Link
-
-	message += "\n"
-
-	return message
-}
-
-func getItemsForCategory(category *string, lastCheckDate *time.Time) []rss.Item {
-	if time.Now().Local().Hour() > 22 || time.Now().Local().Hour() < 8 {
-		*lastCheckDate = time.Now().Add(time.Duration(-30) * time.Second)
-		return []rss.Item{}
-	}
-	feed, err := rss.Fetch("https://www.fl.ru/rss/all.xml?category=" + *category)
-	if err != nil {
-		log.Default().Println("Error getting items for category ", *category, "\n", err, "\n\n")
-		return []rss.Item{}
-	}
-	mostRescent := getMostRescentItems(feed.Items, *lastCheckDate)
-	fmt.Println("items ", lastCheckDate.Local().String(), " ", feed.Items[0].Date.Local().String(), " ", feed.Items[0].Title, " ", len(feed.Items), " ", len(mostRescent))
-	if len(mostRescent) > 0 {
-		*lastCheckDate = mostRescent[0].Date
-	}
-
-	return mostRescent
-}
-
-func getMostRescentItems(items []*rss.Item, lastCheck time.Time) []rss.Item {
-	filtered := []rss.Item{}
-	for _, item := range items {
-		if item.Date.After(lastCheck) {
-			fmt.Print(item.Date, " | ", item.Title, " | ", item.Link, "\n")
-			filtered = append(filtered, *item)
-		}
-	}
-	return filtered
-}
-
 // name="websocket-token" - meta token
 
 /*
@@ -471,10 +395,10 @@ var r = e.content
 // err = page.AddInitScript(initScript)
 // log.Fatalln(err)
 
-// const LOGIN = "aringai09@gmail.com" // Nast-ka.666@mail.ru
-// const PASS = "7fJxtyFQsamsung!"     //fyrgonSk-Doo2023
-const LOGIN = "Nast-ka.666@mail.ru" // 'Nast-ka.666@mail.ru
-const PASS = "fyrgonSk-Doo2023"     // fyrgonSk-Doo2023
+// const LOGIN = "aringai09@gmail.com"
+// const PASS = "7fJxtyFQsamsung!"
+const LOGIN = "Nast-ka.666@mail.ru"
+const PASS = "fyrgonSk-Doo2023"
 
 func login(c context.Context, b *bot.Bot) (chan bool, func() error) {
 	url := "https://www.fl.ru/account/login/"
@@ -506,7 +430,7 @@ func login(c context.Context, b *bot.Bot) (chan bool, func() error) {
 	go func() {
 		err = chromedp.Run(ctx, chromedp.Tasks{
 			chromedp.WaitReady("window"),
-			chromedp.WaitVisible("#'no-session", chromedp.NodeVisible),
+			chromedp.WaitVisible("#no-session", chromedp.NodeVisible),
 		})
 		if err == nil {
 			chromeproxy.CloseTarget(targetId)
@@ -629,23 +553,6 @@ func login(c context.Context, b *bot.Bot) (chan bool, func() error) {
 
 			isCookies <- false
 			log.Println("Error waiting for auth token: ", err)
-		}
-	}()
-
-	go func() {
-		err := chromedp.Run(ctx, chromedp.Tasks{
-			chromedp.WaitVisible(`.recaptcha-checkbox-checked`),
-			chromedp.Click("#submit-button", chromedp.NodeNotVisible),
-			chromedp.ActionFunc(func(ctx context.Context) error {
-				log.Print("Captcha solved!")
-				return nil
-			}),
-		})
-		if err != nil && !errors.Is(err, context.Canceled) {
-			fmt.Println("err 4", err)
-
-			isSucceed <- false
-			log.Println("Error waiting capcha solved: ", err)
 		}
 	}()
 
