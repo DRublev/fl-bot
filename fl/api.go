@@ -62,6 +62,7 @@ func (a *API) GetChats(ctx context.Context, chatId string) ([]Message, error) {
 		err := a.Login(ctx, chatId)
 
 		if err != nil {
+			fmt.Println("Error logging in ", err)
 			return []Message{}, err
 		}
 	}
