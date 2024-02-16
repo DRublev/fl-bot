@@ -95,42 +95,42 @@ func watchCategories(ctx context.Context, wg *sync.WaitGroup, chatID string, cat
 	checks := make(chan CheckChannelItem)
 	defer close(checks)
 
-	select {
-	case <-ctx.Done():
-		fmt.Println("Ctx closed 1")
-		return
-	default:
-		w := &sync.WaitGroup{}
+	go func() {
+		<-ctx.Done()
+		fmt.Println("Context closed")
+		os.Exit(1)
+	}()
+
+	w := &sync.WaitGroup{}
+
+	w.Add(1)
+	go func() {
+		defer w.Done()
+		select {
+		case <-ctx.Done():
+			return
+		case check, ok := <-checks:
+			if !ok {
+				fmt.Println("Check channel closed")
+				return
+			}
+			dbPath := append(chatStoragePath, check.Category+".txt")
+			dbInstance.Append(dbPath, []byte(check.Time.String()))
+		}
+	}()
+
+	for _, category := range categories {
+		log.Default().Println("Start watching category", category, chatID)
+		notViewedItems := make(chan rss.Item)
+		defer close(notViewedItems)
 
 		w.Add(1)
-		go func() {
-			defer w.Done()
-			select {
-			case <-ctx.Done():
-				return
-			case check, ok := <-checks:
-				if !ok {
-					fmt.Println("Check channel closed")
-					return
-				}
-				dbPath := append(chatStoragePath, check.Category+".txt")
-				dbInstance.Append(dbPath, []byte(check.Time.String()))
-			}
-		}()
+		go watch(ctx, w, chatID, category, &checks, &notViewedItems)
 
-		for _, category := range categories {
-			log.Default().Println("Start watching category", category, chatID)
-			notViewedItems := make(chan rss.Item)
-			defer close(notViewedItems)
-
-			w.Add(1)
-			go watch(ctx, w, chatID, category, &checks, &notViewedItems)
-
-			w.Add(1)
-			go sendUpdates(ctx, w, chatID, &notViewedItems)
-		}
-		w.Wait()
+		w.Add(1)
+		go sendUpdates(ctx, w, chatID, &notViewedItems)
 	}
+	w.Wait()
 
 }
 
