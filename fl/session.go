@@ -59,7 +59,6 @@ func (a *API) checkIfNoSession(ctx context.Context, controlCh *chan error, targe
 		chromedp.WaitVisible("#no-session", chromedp.NodeVisible),
 	})
 	if err == nil {
-		chromeproxy.CloseTarget(targetId)
 		fmt.Println("No session found")
 		*controlCh <- errors.New("no session was found for " + targetId.String())
 	}
