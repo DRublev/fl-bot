@@ -64,7 +64,7 @@ a.ui-button._responsive._primary _md - кнопка отклика с про
 
 var CHATS map[string]string = map[string]string{
 	"713587013": "aringai09",
-	"972086219": "nast-ka.666",
+	// "972086219": "nast-ka.666",
 }
 
 var ctx context.Context
